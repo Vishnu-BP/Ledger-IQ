@@ -11,7 +11,7 @@
  *             shouldCreateUser=true means new emails auto-create an account.
  *   Stage 2 — user enters the 6-digit code from email; verifyOtp({type:'email'})
  *             exchanges it for a session. router.push then routes by callback
- *             logic (no business → /onboarding, business → /app/dashboard).
+ *             logic (no business → /onboarding, business → /dashboard).
  *
  * The same component is used at /auth/login and /auth/signup — Supabase
  * handles the new-vs-returning distinction transparently.
@@ -105,7 +105,7 @@ export function EmailOtpForm() {
 
     toast.success("Signed in");
     // Honor explicit ?redirect= (e.g. middleware bounce-back) when present.
-    // Default to /onboarding which itself routes to /app/dashboard if a
+    // Default to /onboarding which itself routes to /dashboard if a
     // business already exists — handles both new and returning users.
     router.push(redirectTo ?? "/onboarding");
     router.refresh();

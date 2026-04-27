@@ -23,11 +23,13 @@ Covers:
 | `/auth/signup` | Sign up | Public |
 | `/auth/callback` | OAuth return | Public |
 | `/onboarding` | First-time wizard | Authenticated |
-| `/app/dashboard` | Home (KPIs + charts + anomalies) | Authenticated + onboarded |
-| `/app/transactions` | Transaction table | Authenticated |
-| `/app/upload` | Upload UI | Authenticated |
-| `/app/reconciliation` | Marketplace recon | Authenticated |
-| `/app/reports` | GSTR-3B + PDF/Excel export | Authenticated |
+| `/dashboard` | Home (KPIs + charts + anomalies) | Authenticated + onboarded |
+| `/transactions` | Transaction table | Authenticated |
+| `/upload` | Upload UI | Authenticated |
+| `/reconciliation` | Marketplace recon | Authenticated |
+| `/reports` | GSTR-3B + PDF/Excel export | Authenticated |
+
+> **Layer-2 deviation note:** PRD originally specified `/app/*` for protected routes. The build switched to root-level paths (`/dashboard` etc.) during Layer 2 because `(app)/` is a Next.js *route group* — the parens exclude the folder from the URL, so route-group + `/app/*` URL was always inconsistent. Routes now live at root paths and `(app)/layout.tsx` provides the shared sidebar/header layout. The middleware's protected-path list is the canonical source for which URLs require auth.
 
 ### 15.2 Onboarding wizard steps
 

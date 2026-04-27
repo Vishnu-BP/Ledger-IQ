@@ -6,7 +6,7 @@
  *
  * Single react-hook-form instance spans all steps; each step calls
  * form.trigger(stepFields) before advancing so partial validation runs
- * inline. Submit POSTs to /api/onboarding and routes to /app/dashboard.
+ * inline. Submit POSTs to /api/onboarding and routes to /dashboard.
  *
  * @dependencies react-hook-form, zod, @hookform/resolvers, sonner
  * @related app/onboarding/page.tsx, app/api/onboarding/route.ts,
@@ -118,7 +118,7 @@ export function OnboardingWizard() {
       }
 
       toast.success("Business saved");
-      router.push("/app/dashboard");
+      router.push("/dashboard");
       router.refresh();
     } catch {
       setSubmitting(false);

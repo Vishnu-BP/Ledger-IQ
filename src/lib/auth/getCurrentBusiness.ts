@@ -5,7 +5,7 @@
  * Returns the user + their business row (or null business if onboarding
  * incomplete), or null entirely if not authenticated. Single canonical helper
  * called by the OAuth callback and by the protected (app) layout to decide
- * whether to route to /onboarding or /app/dashboard.
+ * whether to route to /onboarding or /dashboard.
  *
  * Bypasses RLS via the Drizzle service-role connection (DATABASE_URL) and
  * scopes the query explicitly via WHERE user_id = auth.uid(). The auth check
