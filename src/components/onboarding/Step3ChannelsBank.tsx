@@ -39,49 +39,70 @@ export function Step3ChannelsBank({
   return (
     <div className="space-y-6">
       <div className="space-y-3">
-        <Label>Where do you sell? *</Label>
-        <div className="grid gap-2">
-          {SALES_CHANNELS.map((ch) => (
-            <label
-              key={ch.value}
-              className="flex cursor-pointer items-center gap-2 text-sm"
-            >
-              <Checkbox
-                checked={channels.includes(ch.value)}
-                onCheckedChange={() => toggleChannel(ch.value)}
-              />
-              {ch.label}
-            </label>
-          ))}
+        <Label className="text-slate-600 dark:text-slate-400">Where do you sell? *</Label>
+        <div className="grid grid-cols-2 gap-3">
+          {SALES_CHANNELS.map((ch) => {
+            const isActive = channels.includes(ch.value);
+            return (
+              <button
+                key={ch.value}
+                type="button"
+                onClick={() => toggleChannel(ch.value)}
+                className={`flex flex-col items-start gap-1 rounded-xl border p-4 text-left transition-all hover:border-brand-indigo/50 ${
+                  isActive
+                    ? "border-brand-indigo bg-indigo-50 dark:bg-indigo-950/30"
+                    : "border-slate-200 bg-white hover:bg-slate-50 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:bg-zinc-900"
+                }`}
+              >
+                <span className="text-lg">{ch.icon}</span>
+                <span className={`text-sm font-medium ${isActive ? "text-brand-indigo" : "text-slate-900 dark:text-slate-50"}`}>
+                  {ch.label}
+                </span>
+                <span className="text-[10px] leading-tight text-slate-500">
+                  {ch.description}
+                </span>
+              </button>
+            );
+          })}
         </div>
         {form.formState.errors.sales_channels && (
-          <p className="text-sm text-destructive">
+          <p className="text-xs text-destructive font-medium">
             {form.formState.errors.sales_channels.message}
           </p>
         )}
       </div>
 
-      <div className="space-y-2">
-        <Label>Primary bank *</Label>
-        <Select
-          value={bank || undefined}
-          onValueChange={(v) =>
-            form.setValue("primary_bank", v, { shouldValidate: true })
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Pick your main bank" />
-          </SelectTrigger>
-          <SelectContent>
-            {BANKS.map((b) => (
-              <SelectItem key={b.value} value={b.value}>
-                {b.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="space-y-3">
+        <Label className="text-slate-600 dark:text-slate-400">Primary bank *</Label>
+        <div className="grid grid-cols-2 gap-3">
+          {BANKS.map((b) => {
+            const isActive = bank === b.value;
+            return (
+              <button
+                key={b.value}
+                type="button"
+                onClick={() =>
+                  form.setValue("primary_bank", b.value, { shouldValidate: true })
+                }
+                className={`flex flex-col items-start gap-1 rounded-xl border p-4 text-left transition-all hover:border-brand-indigo/50 ${
+                  isActive
+                    ? "border-brand-indigo bg-indigo-50 dark:bg-indigo-950/30"
+                    : "border-slate-200 bg-white hover:bg-slate-50 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:bg-zinc-900"
+                }`}
+              >
+                <span className="text-lg">{b.icon}</span>
+                <span className={`text-sm font-medium ${isActive ? "text-brand-indigo" : "text-slate-900 dark:text-slate-50"}`}>
+                  {b.label}
+                </span>
+                <span className="text-[10px] leading-tight text-slate-500">
+                  {b.description}
+                </span>
+              </button>
+            );
+          })}
+        </div>
         {form.formState.errors.primary_bank && (
-          <p className="text-sm text-destructive">
+          <p className="text-xs text-destructive font-medium">
             {form.formState.errors.primary_bank.message}
           </p>
         )}

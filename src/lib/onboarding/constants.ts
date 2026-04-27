@@ -11,12 +11,12 @@
  */
 
 export const BUSINESS_TYPES = [
-  { value: "retail", label: "Retail" },
-  { value: "restaurant", label: "Restaurant" },
-  { value: "service", label: "Service" },
-  { value: "ecommerce", label: "E-commerce" },
-  { value: "manufacturing", label: "Manufacturing" },
-  { value: "other", label: "Other" },
+  { value: "retail", label: "Retail", icon: "🛍️", description: "Shops and brick-and-mortar" },
+  { value: "restaurant", label: "Restaurant", icon: "🍕", description: "Food, beverages, and cafes" },
+  { value: "service", label: "Service", icon: "🛠️", description: "Agencies and consultants" },
+  { value: "ecommerce", label: "E-commerce", icon: "🌐", description: "Online stores and D2C brands" },
+  { value: "manufacturing", label: "Manufacturing", icon: "🏭", description: "Production and factory units" },
+  { value: "other", label: "Other", icon: "✨", description: "Everything else" },
 ] as const;
 
 export type BusinessType = (typeof BUSINESS_TYPES)[number]["value"];
@@ -62,23 +62,23 @@ export const INDIAN_STATES = [
 ] as const;
 
 export const SALES_CHANNELS = [
-  { value: "physical_store", label: "Physical store" },
-  { value: "amazon", label: "Amazon" },
-  { value: "flipkart", label: "Flipkart" },
-  { value: "meesho", label: "Meesho" },
-  { value: "b2b_direct", label: "Direct B2B" },
-  { value: "other", label: "Other" },
+  { value: "physical_store", label: "Physical store", icon: "🏪", description: "Direct retail sales" },
+  { value: "amazon", label: "Amazon", icon: "📦", description: "Marketplace seller" },
+  { value: "flipkart", label: "Flipkart", icon: "🛒", description: "Marketplace seller" },
+  { value: "meesho", label: "Meesho", icon: "📱", description: "Social commerce" },
+  { value: "b2b_direct", label: "Direct B2B", icon: "💼", description: "Invoicing & collections" },
+  { value: "other", label: "Other", icon: "✨", description: "Misc channels" },
 ] as const;
 
 export type SalesChannel = (typeof SALES_CHANNELS)[number]["value"];
 
 export const BANKS = [
-  { value: "hdfc", label: "HDFC Bank" },
-  { value: "icici", label: "ICICI Bank" },
-  { value: "sbi", label: "State Bank of India" },
-  { value: "axis", label: "Axis Bank" },
-  { value: "kotak", label: "Kotak Mahindra Bank" },
-  { value: "other", label: "Other" },
+  { value: "hdfc", label: "HDFC Bank", icon: "🏦", description: "Private sector" },
+  { value: "icici", label: "ICICI Bank", icon: "🏦", description: "Private sector" },
+  { value: "sbi", label: "State Bank of India", icon: "🏛️", description: "Public sector" },
+  { value: "axis", label: "Axis Bank", icon: "🏦", description: "Private sector" },
+  { value: "kotak", label: "Kotak Mahindra Bank", icon: "🏦", description: "Private sector" },
+  { value: "other", label: "Other", icon: "✨", description: "All other banks" },
 ] as const;
 
 export type Bank = (typeof BANKS)[number]["value"];

@@ -127,37 +127,66 @@ export function OnboardingWizard() {
   }
 
   const current = STEPS[step];
-  const progress = `Step ${step + 1} of ${STEPS.length}`;
+  const progressPercent = ((step + 1) / STEPS.length) * 100;
+  const progressText = `Step ${step + 1} of ${STEPS.length}`;
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader>
-        <CardTitle>{current.title}</CardTitle>
-        <CardDescription>
-          {current.description} • {progress}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {step === 0 && <Step1Basics form={form} />}
-        {step === 1 && <Step2TaxIdentity form={form} />}
-        {step === 2 && <Step3ChannelsBank form={form} />}
-        {step === 3 && <Step4Recap values={form.getValues()} />}
+    <div className="flex flex-col">
+      {/* Progress Bar */}
+      <div className="h-1 w-full bg-slate-100 dark:bg-zinc-800">
+        <div 
+          className="h-full bg-brand-indigo transition-all duration-300 ease-in-out" 
+          style={{ width: `${progressPercent}%` }}
+        />
+      </div>
 
-        <div className="flex justify-between gap-2 pt-2">
+      <div className="p-8">
+        <div className="mb-8 flex items-center justify-between">
+          <div className="space-y-1">
+            <h2 className="text-xl font-medium tracking-tight text-slate-900 dark:text-slate-50">
+              {current.title}
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {current.description}
+            </p>
+          </div>
+          <div className="rounded-full border border-slate-200 px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:border-zinc-800">
+            {progressText}
+          </div>
+        </div>
+
+        <div className="min-h-[300px] space-y-6">
+          {step === 0 && <Step1Basics form={form} />}
+          {step === 1 && <Step2TaxIdentity form={form} />}
+          {step === 2 && <Step3ChannelsBank form={form} />}
+          {step === 3 && <Step4Recap values={form.getValues()} />}
+        </div>
+
+        <div className="mt-8 flex justify-between gap-3 border-t border-slate-100 pt-6 dark:border-zinc-800">
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             onClick={back}
             disabled={step === 0 || submitting}
+            className="px-6 font-medium text-slate-500 hover:text-slate-900"
           >
             Back
           </Button>
           {step < STEPS.length - 1 ? (
-            <Button type="button" onClick={next}>
-              Next
+            <Button 
+              type="button" 
+              onClick={next}
+              className="bg-brand-indigo px-8 font-medium text-white hover:bg-brand-indigo/90"
+            >
+              Continue &rarr;
             </Button>
           ) : (
-            <Button type="button" onClick={submit} disabled={submitting}>
+            <Button 
+              type="button" 
+              onClick={submit} 
+              disabled={submitting}
+              className="bg-brand-indigo px-8 font-medium text-white hover:bg-brand-indigo/90"
+            >
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…
@@ -168,7 +197,7 @@ export function OnboardingWizard() {
             </Button>
           )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

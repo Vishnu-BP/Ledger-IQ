@@ -32,8 +32,8 @@ export function Step2TaxIdentity({
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="gstin">
-          GSTIN <span className="text-muted-foreground">(optional)</span>
+        <Label htmlFor="gstin" className="text-slate-600 dark:text-slate-400">
+          GSTIN <span className="text-muted-foreground font-normal">(optional)</span>
         </Label>
         <Input
           id="gstin"
@@ -42,14 +42,14 @@ export function Step2TaxIdentity({
           {...form.register("gstin")}
         />
         {form.formState.errors.gstin && (
-          <p className="text-sm text-destructive">
+          <p className="text-xs text-destructive font-medium">
             {form.formState.errors.gstin.message}
           </p>
         )}
       </div>
 
       <div className="space-y-2">
-        <Label>State *</Label>
+        <Label className="text-slate-600 dark:text-slate-400">State *</Label>
         <Select
           value={state || undefined}
           onValueChange={(v) =>
@@ -68,14 +68,14 @@ export function Step2TaxIdentity({
           </SelectContent>
         </Select>
         {form.formState.errors.state && (
-          <p className="text-sm text-destructive">
+          <p className="text-xs text-destructive font-medium">
             {form.formState.errors.state.message}
           </p>
         )}
       </div>
 
       <div className="space-y-2">
-        <Label>Fiscal year start month</Label>
+        <Label className="text-slate-600 dark:text-slate-400">Fiscal year start month</Label>
         <Select
           value={String(fiscalMonth ?? 4)}
           onValueChange={(v) =>
