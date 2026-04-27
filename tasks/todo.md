@@ -15,7 +15,7 @@
   <p>This code expires in 1 hour. If you didn't request this, you can ignore the email.</p>
   ```
   Both templates need updating because Supabase routes new emails through "Confirm signup" and returning emails through "Magic Link". Subjects can stay as-is.
-- [ ] **Before stage 2.2** — Create private Supabase Storage bucket named `statements` via Supabase Studio → Storage → New bucket → name `statements` → uncheck "Public bucket".
+- [x] ~~**Before stage 2.2** — Create private Supabase Storage bucket named `statements`.~~ **Done in Stage 2.2 via MCP `apply_migration`** (no manual Studio click needed). Bucket + 3 RLS policies on storage.objects deployed.
 - [ ] **Before stage 5.8** — Add Vercel deploy URL to (a) Supabase Auth allow-list, (b) Google OAuth redirect URIs, (c) GitHub OAuth callback. Set all 6 env vars in Vercel project settings.
 
 ## Environment Notes
@@ -27,20 +27,40 @@
 
 ## Active Stage
 
-**Stage 1.6.5 — Code restructure: /src + @/ aliases** (complete — Layer 1 ready for commit)
+**Stage 2.4.5 — Basic dashboard (interim)** (complete — Layer 2 ready for commit + push)
 
 Substeps:
-- [x] Stop dev server on port 3000
-- [x] mv app/, components/, db/, lib/, middleware.ts → src/
-- [x] Update tsconfig paths (@/* → ./src/*), tailwind content (single ./src/** glob), drizzle.config schema/out, components.json css path, package.json db:seed script
-- [x] Rewrite 10 sibling relative imports to @/ (CSS imports stay relative): app/layout, db/seed (3), db/client, lib/onboarding/schema, components/onboarding/OnboardingWizard (4), components/shell/Sidebar
-- [x] Add 3 missing lib barrels: src/lib/auth/index.ts, src/lib/businesses/index.ts, src/lib/onboarding/index.ts
-- [x] Update PRD §10.1 (docs/prd/02-architecture.md) — new src/-based folder layout + Layer 1 deviation note
-- [x] Clear stale .next cache + run typecheck (0 errors)
-- [x] Restart dev server, full route smoke matrix passes: /, /auth/{login,signup} = 200; /auth/callback no-code = 307 to login error; all 5 /app/* logged-out = 307 with correct ?redirect=; /onboarding logged-out = 307; POST /api/onboarding empty body = 400 (Zod), valid body no auth = 401
-- [x] pnpm db:seed re-runs from src/db/seed.ts cleanly (37 categories, idempotent via onConflictDoNothing)
-- [x] MCP list_tables confirms 10 tables, all rls_enabled, gst_categories rows = 37; DB untouched by restructure
-- [ ] Layer 1 commit `layer-1-skeleton` pending user approval
+- [x] Rewrite src/app/(app)/dashboard/page.tsx as RSC: 5 parallel Drizzle queries (statementCount, transactionCount, 30d inflow, 30d outflow, recent 5)
+- [x] Layout: business name welcome → first-run EmptyState OR (4 stat cards + recent transactions list + Upload/View-all CTAs) → footer with email + visible SignOutButton
+- [x] Inline `<StatCard>` helper (KpiTile extraction is Stage 4.1's job per PRD §10.1)
+- [x] Smoke: typecheck = 0, lint = 0, /app/dashboard logged-out = 307 with redirect param
+
+## Layer 2 — Foundation: complete, ready to commit
+
+All five sub-stages done:
+- 2.1 Upload UI ✓
+- 2.2 /api/upload + Storage + dedup ✓
+- 2.3 Bank statement parser (HDFC + ICICI) ✓
+- 2.4 Transactions table + edit/delete ✓
+- 2.4.5 Basic dashboard with stats + sign-out ✓
+
+Awaiting user approval to commit + push as `layer-2-foundation`.
+
+Substeps:
+- [x] Apply migration `storage_statements_bucket` via MCP — creates private bucket + 3 RLS policies (insert/select/delete scoped to business folder)
+- [x] Verify bucket: `storage.buckets` row exists, public=false, file_size_limit=10MB
+- [x] Write src/lib/supabase/admin.ts (service-role client; `import "server-only"` enforces server-side use)
+- [x] Update src/lib/supabase/index.ts barrel — exports admin client + cleans up the leftover `./` imports from the restructure pass
+- [x] Write src/lib/storage/supabaseStorage.ts (`uploadStatementFile()` writes to `<business_id>/<file_hash>.csv`, throws StorageError) + barrel
+- [x] Write src/lib/uploads/computeFileHash.ts (SHA-256 hex)
+- [x] Write src/lib/uploads/uploadStatement.ts (orchestrator: hash → dedup check → Storage upload → INSERT statements row; throws DuplicateUploadError) + barrel
+- [x] Write src/app/api/upload/route.ts (POST handler with auth → file shape → type slug → service call; maps errors to 400/401/403/409/413/501/500 with consistent `{error:{code,message}}` body)
+- [x] Smoke (typecheck = 0, lint = 0, dev server live):
+  - POST empty body → 400 invalid_request
+  - POST with file no auth → 401 unauthorized
+  - POST with file + amazon_settlement no auth → 401 (auth check before type check)
+  - (manual: POST with auth + bank_statement → 200; same file twice → 409 dup)
+- [ ] Manual test: log in → /onboarding → finish wizard → /app/dashboard → Upload sidebar → drop test.csv → toast "Upload received" + statements row appears in MCP query
 
 ---
 
@@ -114,3 +134,50 @@ Substeps:
 - 5 protected page stubs (dashboard/transactions/upload/reconciliation/reports) each with intent-appropriate empty state
 - Bug fix: EmailOtpForm default redirect changed from /app/dashboard → /onboarding (handles new + returning via onboarding's own gate)
 - Verified: typecheck = 0, all 5 /app/* logged-out = 307 with correct ?redirect=, /, /auth/login = 200
+
+### Stage 1.6.5 — Code restructure: /src + @/ aliases ✅ (2026-04-27)
+- 49 source files moved under src/; root reserved for configs + docs + tasks
+- Configs updated: tsconfig paths (@/* → ./src/*), tailwind content (single ./src/** glob), drizzle.config schema/out, components.json css, package.json db:seed
+- 10 sibling relative imports rewritten to @/ (CSS stays relative)
+- 3 missing lib barrels added: src/lib/{auth,businesses,onboarding}/index.ts
+- PRD §10.1 (docs/prd/02-architecture.md) updated to show src/-based layout + Layer 1 deviation note
+- Verified: typecheck = 0, full curl smoke matrix passes, db:seed re-runs idempotently (37 rows preserved), MCP list_tables confirms 10 tables + RLS, DB untouched
+
+### Layer 1 commit + GitHub push ✅ (2026-04-27)
+- .eslintrc.json added (next/core-web-vitals) — `pnpm lint` = 0 warnings/errors
+- Commit: e11ab2e "Layer 1 — Skeleton: auth + onboarding + app shell (src/ layout)"
+- Branch master → main, remote https://github.com/Vishnu-BP/Ledger-IQ.git, pushed to origin/main
+- 86 files committed; .env.local, .mcp.json, .claude/, node_modules/ correctly excluded
+
+### Stage 2.1 — Upload page UI ✅ (2026-04-27)
+- shadcn primitives added: progress + radio-group (Radix transitive deps)
+- src/components/upload/{FileDropzone,UploadProgress,UploadTypeSelector,index}.tsx — drag/drop with .csv + 10 MB validation, fake-animated progress (0→90 during isPending, 100 on settle), 3-option radio selector
+- src/lib/hooks/{useUpload,index}.ts — TanStack Query mutation (FormData POST to /api/upload, throws on non-2xx, parses `{error:{message}}` body for friendly toast)
+- src/app/(app)/upload/page.tsx — replaces empty state with live upload card; toasts terminal state via sonner; "Upload another file" reset
+- Verified: typecheck = 0, lint = 0, /app/upload logged-out = 307, POST /api/upload = 404 (stage 2.2's job)
+
+### Stage 2.2 — POST /api/upload + Storage + dedup ✅ (2026-04-27)
+- MCP migration `storage_statements_bucket` — private bucket (10 MB, CSV mime types) + 3 RLS policies on storage.objects scoping insert/select/delete to business folder
+- src/lib/supabase/admin.ts — service-role client with `import "server-only"` guard
+- src/lib/storage/supabaseStorage.ts — `uploadStatementFile()` writes to `<business_id>/<file_hash>.csv`
+- src/lib/uploads/{computeFileHash,uploadStatement,index}.ts — orchestrator: hash → dedup → Storage → INSERT statements
+- src/app/api/upload/route.ts — multipart parse → auth → file shape (.csv, ≤10 MB) → type slug → service; maps errors to 400/401/403/409/413/501/500
+- Verified: typecheck = 0, lint = 0, all error paths via curl (400/401), bucket exists in storage.buckets
+
+### Stage 2.3 — Bank statement CSV parser ✅ (2026-04-28)
+- papaparse + @types/papaparse + date-fns installed
+- src/types/transaction.ts — Drizzle-inferred Transaction / TransactionInsert
+- src/lib/parsers/{types,amounts,formats/{hdfc,icici},bankStatementParser,index}.ts — header-signature dispatch, Indian-formatted number parsing, ParseError with code enum
+- Extended uploadStatement to parse inline + bulk-insert transactions + advance status (uploaded → parsing → parsed | error)
+- Route handler maps ParseError → 422 (file persisted, DB row in 'error' status with parse_error populated)
+- Verified: typecheck = 0, lint = 0, error paths via curl
+
+### Stage 2.4 — Transactions table page ✅ (2026-04-28)
+- shadcn alert-dialog + badge added
+- src/lib/transactions/{channels,listTransactions,updateTransaction,deleteTransaction,index}.ts — 10-channel enum + 3 services + TransactionNotFoundError
+- GET /api/transactions (Zod-validated date/search/category/channel filters) + PATCH /api/transactions/[id] (auto user_overridden=true) + DELETE /api/transactions/[id]
+- src/lib/hooks/{useTransactions (60s staleTime), useUpdateTransaction (optimistic — only allowed case), useDeleteTransaction}
+- lib/utils.ts: formatINR (Intl en-IN, ₹) + formatDate
+- src/components/transactions/{TransactionFilters,EditCategoryModal,TransactionRow,TransactionTable,index}.tsx — URL-synced filters, optimistic edits, AlertDialog delete confirm, "Awaiting AI" pills for NULL Layer-3 fields
+- /app/transactions RSC: fetches gst_categories once, passes to client TransactionTable
+- Verified: typecheck = 0, lint = 0, GET/PATCH/DELETE no-auth = 401, /app/transactions logged-out = 307

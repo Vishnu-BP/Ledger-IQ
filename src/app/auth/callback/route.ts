@@ -7,7 +7,7 @@
  * session cookie, then routes the user:
  *
  *   1. If `?next=` is present, honor it (used for deep-linking through OAuth)
- *   2. Else if user already has a business → /app/dashboard
+ *   2. Else if user already has a business → /dashboard
  *   3. Else → /onboarding
  *
  * On any error, redirects back to /auth/login with the error message in a
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
   }
 
   const result = await getCurrentBusiness();
-  const target = result?.business ? "/app/dashboard" : "/onboarding";
+  const target = result?.business ? "/dashboard" : "/onboarding";
   log.info("Auth callback resolved", { target });
   return NextResponse.redirect(new URL(target, request.url));
 }

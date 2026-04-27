@@ -4,7 +4,7 @@
  *
  * Server-side gate: redirect unauthenticated users to /auth/login (defensive —
  * middleware already does this), redirect users with an existing business to
- * /app/dashboard. Else render the client wizard.
+ * /dashboard. Else render the client wizard.
  *
  * @related components/onboarding/OnboardingWizard.tsx, middleware.ts
  */
@@ -18,7 +18,7 @@ export default async function OnboardingPage() {
   const result = await getCurrentBusiness();
 
   if (!result) redirect("/auth/login");
-  if (result.business) redirect("/app/dashboard");
+  if (result.business) redirect("/dashboard");
 
   return (
     <main className="flex min-h-screen items-center justify-center p-4">

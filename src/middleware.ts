@@ -5,10 +5,10 @@
  * Runs on every request matching the `config.matcher` below. Refreshes the
  * Supabase session cookie via the helper, then enforces:
  *
- *   - Unauthenticated user hitting /app/* or /onboarding → redirect to
- *     /auth/login?redirect=<original-path>
+ *   - Unauthenticated user hitting any protected path or /onboarding → redirect
+ *     to /auth/login?redirect=<original-path>
  *   - Authenticated user hitting /auth/login or /auth/signup → redirect to
- *     /app/dashboard (no point showing auth pages to logged-in users)
+ *     /dashboard (no point showing auth pages to logged-in users)
  *
  * The matcher excludes static assets to avoid running auth checks on
  * Next.js internal routes and image assets.
@@ -20,7 +20,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
-const PROTECTED_PREFIXES = ["/app", "/onboarding"];
+const PROTECTED_PREFIXES = [
+  "/dashboard",
+  "/transactions",
+  "/upload",
+  "/reconciliation",
+  "/reports",
+  "/onboarding",
+];
 const AUTH_PAGES = ["/auth/login", "/auth/signup"];
 
 export async function middleware(request: NextRequest) {
@@ -41,7 +48,7 @@ export async function middleware(request: NextRequest) {
 
   if (isAuthPage && user) {
     const url = request.nextUrl.clone();
-    url.pathname = "/app/dashboard";
+    url.pathname = "/dashboard";
     return NextResponse.redirect(url);
   }
 

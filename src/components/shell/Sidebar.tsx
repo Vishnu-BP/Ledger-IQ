@@ -36,11 +36,11 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/app/transactions", label: "Transactions", icon: ReceiptText },
-  { href: "/app/upload", label: "Upload", icon: Upload },
-  { href: "/app/reconciliation", label: "Reconciliation", icon: GitCompareArrows },
-  { href: "/app/reports", label: "Reports", icon: FileText },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/transactions", label: "Transactions", icon: ReceiptText },
+  { href: "/upload", label: "Upload", icon: Upload },
+  { href: "/reconciliation", label: "Reconciliation", icon: GitCompareArrows },
+  { href: "/reports", label: "Reports", icon: FileText },
 ];
 
 export function Sidebar() {
@@ -50,7 +50,7 @@ export function Sidebar() {
     <aside className="flex h-screen w-60 shrink-0 flex-col border-r bg-card">
       <div className="px-6 py-5">
         <Link
-          href="/app/dashboard"
+          href="/dashboard"
           className="flex items-center gap-2 text-lg font-bold tracking-tight"
         >
           LedgerIQ
