@@ -7,6 +7,7 @@ import { BarChart3, Quote, ShieldCheck, Globe, Heart } from "lucide-react";
 
 import { EmailOtpForm } from "@/components/auth/EmailOtpForm";
 import { OAuthButtons } from "@/components/auth/OAuthButtons";
+import { DashboardMockup } from "@/components/auth/DashboardMockup";
 
 export default function LoginPage() {
   return (
@@ -48,17 +49,11 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* Dashboard Mockup - Compact for one-screen */}
-          <div className="relative mt-4 group transition-transform duration-500 hover:scale-[1.01]">
-            <div className="absolute -inset-1 rounded-2xl bg-gradient-to-tr from-indigo-500/30 to-purple-500/30 blur-2xl opacity-40" />
-            <div className="relative rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden shadow-2xl">
-              <Image 
-                src="/images/dashboard-mockup.png" 
-                alt="Dashboard Mockup" 
-                width={800} 
-                height={500}
-                className="w-full h-auto opacity-80"
-              />
+          {/* Dashboard Mockup - Fixed with high-fidelity CSS component */}
+          <div className="relative mt-4 group transition-transform duration-500 hover:scale-[1.02]">
+            <div className="absolute -inset-1 rounded-3xl bg-gradient-to-tr from-indigo-500/40 to-purple-500/40 blur-2xl opacity-40 group-hover:opacity-60 transition-opacity" />
+            <div className="relative h-[420px] w-full rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden shadow-2xl">
+              <DashboardMockup />
             </div>
           </div>
         </div>

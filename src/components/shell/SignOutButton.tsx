@@ -41,9 +41,9 @@ export function SignOutButton() {
       type="button"
       onClick={signOut}
       disabled={signingOut}
-      className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground disabled:opacity-50"
+      className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-white/50 transition-all duration-200 hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50 group"
     >
-      <LogOut className="h-4 w-4" />
+      <LogOut className="h-5 w-5 text-white/30 transition-colors group-hover:text-red-400" />
       {signingOut ? "Signing out…" : "Sign out"}
     </button>
   );
