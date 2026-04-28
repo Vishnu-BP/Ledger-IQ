@@ -134,3 +134,63 @@ Return JSON:
     { role: "user", content: user },
   ];
 }
+
+// ─── Anomaly explanation ────────────────────────────────────────
+
+const SYSTEM_ANOMALY = `You are a financial advisor explaining anomalies in simple language to an Indian small business owner.
+Return ONLY a JSON object — no prose, no fences.`;
+
+export interface AnomalyContext {
+  type: string;
+  metadata: Record<string, unknown>;
+  business_type: string;
+}
+
+export function buildAnomalyExplanationPrompt(
+  ctx: AnomalyContext,
+): ChatMessage[] {
+  const user = `Anomaly type: ${ctx.type}
+Business type: ${ctx.business_type}
+Details: ${JSON.stringify(ctx.metadata, null, 2)}
+
+Generate a plain-English explanation for this anomaly. Return JSON:
+{ "explanation": "<2-3 sentences: what was detected, why it matters, suggested next action>" }`;
+
+  return [
+    { role: "system", content: SYSTEM_ANOMALY },
+    { role: "user", content: user },
+  ];
+}
+
+// ─── Reconciliation discrepancy ─────────────────────────────────
+
+const SYSTEM_RECON = `You are a financial reconciliation expert explaining Amazon seller payout discrepancies to an Indian small business owner.
+Return ONLY a JSON object — no prose, no fences.`;
+
+export interface ReconciliationContext {
+  expected_amount: string;
+  actual_amount: string;
+  discrepancy: string;
+  discrepancy_type: string;
+  affected_order_ids: string[];
+  settlement_details: Record<string, unknown>;
+}
+
+export function buildReconciliationPrompt(
+  ctx: ReconciliationContext,
+): ChatMessage[] {
+  const user = `Expected payout (from settlement): ₹${ctx.expected_amount}
+Actual bank credit: ₹${ctx.actual_amount}
+Gap: ₹${ctx.discrepancy}
+Discrepancy type: ${ctx.discrepancy_type}
+Affected orders: ${ctx.affected_order_ids.slice(0, 6).join(", ")}
+Settlement details: ${JSON.stringify(ctx.settlement_details, null, 2)}
+
+Generate a clear explanation for the seller. Return JSON:
+{ "explanation": "<3-4 sentences: likely cause, amount owed, recommended action (e.g. raise dispute via Amazon Seller Central)>" }`;
+
+  return [
+    { role: "system", content: SYSTEM_RECON },
+    { role: "user", content: user },
+  ];
+}
