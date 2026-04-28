@@ -1,168 +1,177 @@
 /**
- * @file page.tsx — /dashboard — interim Layer-2 summary view.
+ * @file page.tsx — /dashboard — full KPI + chart + anomaly dashboard.
  * @module app/(app)/dashboard
  *
- * Shell renders immediately; each data section streams in independently via
- * Suspense. Layer 4.1 will replace this with the full KPI/chart/anomaly
- * dashboard once AI categorisation lands.
+ * Streams three independent sections via Suspense so the page renders
+ * progressively: KPI tiles → cash flow chart → channel split + anomalies.
+ * All data fetched server-side; client components (charts, panel) receive
+ * serialised props so they have no async work of their own.
  *
- * @related lib/auth/getCurrentBusiness.ts, db/schema.ts, components/shell/SignOutButton.tsx
+ * @related lib/analytics/, components/dashboard/, lib/auth/getCurrentBusiness.ts
  */
 
 import { Suspense } from "react";
-import { and, desc, eq, gte, sql } from "drizzle-orm";
-import {
-  ArrowDownRight,
-  ArrowUpRight,
-  FileText,
-  ReceiptText,
-  Upload,
-} from "lucide-react";
+import { and, desc, eq, sql } from "drizzle-orm";
+import { AlertTriangle, ArrowUpRight, CalendarDays, Receipt, Upload } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { SignOutButton } from "@/components/shell/SignOutButton";
+import { AnomalyPanel } from "@/components/dashboard/AnomalyPanel";
+import { CashFlowChart } from "@/components/dashboard/CashFlowChart";
+import { ChannelSplitDonut } from "@/components/dashboard/ChannelSplitDonut";
+import { KpiTile } from "@/components/dashboard/KpiTile";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { db } from "@/db/client";
-import { statements, transactions } from "@/db/schema";
+import { anomalies, statements } from "@/db/schema";
 import { getCurrentBusiness } from "@/lib/auth";
-import { cn, formatDate, formatINR } from "@/lib/utils";
+import { getCashFlow, getChannelSplit, getTotals } from "@/lib/analytics";
+import { formatINR } from "@/lib/utils";
 
-// ─── Skeletons ─────────────────────────────────────────────
+// ─── Helpers ───────────────────────────────────────────────
 
-function StatCardSkeleton() {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <div className="h-3 w-20 animate-pulse rounded bg-muted" />
-        <div className="h-4 w-4 animate-pulse rounded bg-muted" />
-      </CardHeader>
-      <CardContent>
-        <div className="h-8 w-24 animate-pulse rounded bg-muted" />
-      </CardContent>
-    </Card>
-  );
+function greeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 18) return "Good afternoon";
+  return "Good evening";
 }
 
-function RecentTransactionsSkeleton() {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Recent transactions</CardTitle>
-        <CardDescription>Last 5 rows added across all uploaded statements.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ul className="divide-y">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <li key={i} className="flex items-center justify-between gap-4 py-2.5">
-              <div className="h-3 w-20 animate-pulse rounded bg-muted" />
-              <div className="h-3 flex-1 animate-pulse rounded bg-muted" />
-              <div className="h-3 w-16 animate-pulse rounded bg-muted" />
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-    </Card>
-  );
+function todayLabel(): string {
+  return new Date().toLocaleDateString("en-IN", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
+  });
 }
 
-// ─── Async data components ──────────────────────────────────
+// ─── Skeleton ──────────────────────────────────────────────
 
-async function StatCards({ businessId }: { businessId: string }) {
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const cutoff = thirtyDaysAgo.toISOString().slice(0, 10);
-
-  const [statementCount, transactionCount, inflowRow, outflowRow] =
-    await Promise.all([
-      db.$count(statements, eq(statements.business_id, businessId)),
-      db.$count(transactions, eq(transactions.business_id, businessId)),
-      db
-        .select({ total: sql<string>`COALESCE(SUM(${transactions.credit_amount}), '0')` })
-        .from(transactions)
-        .where(and(eq(transactions.business_id, businessId), gte(transactions.transaction_date, cutoff))),
-      db
-        .select({ total: sql<string>`COALESCE(SUM(${transactions.debit_amount}), '0')` })
-        .from(transactions)
-        .where(and(eq(transactions.business_id, businessId), gte(transactions.transaction_date, cutoff))),
-    ]);
-
-  if (statementCount === 0) {
-    return (
-      <EmptyState
-        icon={Upload}
-        title="No data yet"
-        description="Upload your first bank statement to see counts, totals, and recent transactions here."
-      >
-        <Button asChild>
-          <Link href="/upload">Upload your first statement</Link>
-        </Button>
-      </EmptyState>
-    );
-  }
-
+function KpiSkeleton() {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <StatCard label="Statements" value={statementCount.toString()} icon={<FileText className="h-4 w-4" />} />
-      <StatCard label="Transactions" value={transactionCount.toString()} icon={<ReceiptText className="h-4 w-4" />} />
-      <StatCard
-        label="30-day inflow"
-        value={formatINR(inflowRow[0]?.total ?? "0")}
-        icon={<ArrowUpRight className="h-4 w-4 text-emerald-600" />}
-        valueClassName="text-emerald-700"
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="h-28 animate-pulse rounded-xl border bg-muted" />
+      ))}
+    </div>
+  );
+}
+
+function ChartSkeleton() {
+  return <div className="h-64 animate-pulse rounded-xl border bg-muted" />;
+}
+
+function BottomSkeleton() {
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="h-64 animate-pulse rounded-xl border bg-muted lg:col-span-2" />
+      <div className="h-64 animate-pulse rounded-xl border bg-muted lg:col-span-3" />
+    </div>
+  );
+}
+
+// ─── Async sections ────────────────────────────────────────
+
+async function KpiSection({ businessId }: { businessId: string }) {
+  const totals = await getTotals(businessId);
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <KpiTile
+        label="Total Revenue"
+        value={formatINR(totals.totalRevenue)}
+        icon={ArrowUpRight}
+        iconClassName="bg-emerald-500/10"
+        valueClassName="text-emerald-700 dark:text-emerald-400"
+        subtext="All credits to date"
       />
-      <StatCard
-        label="30-day outflow"
-        value={formatINR(outflowRow[0]?.total ?? "0")}
-        icon={<ArrowDownRight className="h-4 w-4 text-destructive" />}
-        valueClassName="text-destructive"
+      <KpiTile
+        label="GST Liability"
+        value={formatINR(totals.gstLiability)}
+        icon={Receipt}
+        subtext="Output tax on outward supplies"
+      />
+      <KpiTile
+        label="Cash Runway"
+        value={totals.cashRunwayDays !== null ? `${totals.cashRunwayDays} days` : "—"}
+        icon={CalendarDays}
+        subtext="At current avg daily burn"
+      />
+      <KpiTile
+        label="Open Anomalies"
+        value={String(totals.openAnomalyCount)}
+        icon={AlertTriangle}
+        iconClassName={totals.openAnomalyCount > 0 ? "bg-destructive/10" : "bg-emerald-500/10"}
+        valueClassName={totals.openAnomalyCount > 0 ? "text-destructive" : "text-emerald-700 dark:text-emerald-400"}
+        subtext={totals.openAnomalyCount === 0 ? "Nothing to review" : "Needs your attention"}
       />
     </div>
   );
 }
 
-async function RecentTransactions({ businessId }: { businessId: string }) {
-  const recentRows = await db
-    .select()
-    .from(transactions)
-    .where(eq(transactions.business_id, businessId))
-    .orderBy(desc(transactions.created_at))
-    .limit(5);
+async function CashFlowSection({ businessId }: { businessId: string }) {
+  const data = await getCashFlow(businessId, 90);
+  return (
+    <div className="rounded-xl border bg-card p-5">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold">Cash Flow</p>
+          <p className="text-xs text-muted-foreground">Last 90 days · inflow vs outflow</p>
+        </div>
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />Inflow</span>
+          <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-red-500" />Outflow</span>
+        </div>
+      </div>
+      <CashFlowChart data={data} />
+    </div>
+  );
+}
+
+async function BottomSection({ businessId }: { businessId: string }) {
+  const [channels, openAnomalies] = await Promise.all([
+    getChannelSplit(businessId),
+    db
+      .select({
+        id: anomalies.id,
+        type: anomalies.type,
+        severity: anomalies.severity,
+        title: anomalies.title,
+        ai_explanation: anomalies.ai_explanation,
+      })
+      .from(anomalies)
+      .where(
+        and(
+          eq(anomalies.business_id, businessId),
+          sql`${anomalies.status} NOT IN ('reviewed_ok', 'dismissed')`,
+        ),
+      )
+      .orderBy(desc(anomalies.detected_at))
+      .limit(3),
+  ]);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Recent transactions</CardTitle>
-        <CardDescription>Last 5 rows added across all uploaded statements.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {recentRows.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Statements uploaded but no transactions parsed. Check the Transactions page.
-          </p>
-        ) : (
-          <ul className="divide-y">
-            {recentRows.map((t) => (
-              <li key={t.id} className="flex items-center justify-between gap-4 py-2.5 text-sm">
-                <span className="w-24 shrink-0 text-muted-foreground">{formatDate(t.transaction_date)}</span>
-                <span className="flex-1 truncate" title={t.description}>{t.description}</span>
-                <span className={cn("shrink-0 font-medium", t.credit_amount && "text-emerald-600", t.debit_amount && "text-destructive")}>
-                  {t.credit_amount ? `+${formatINR(t.credit_amount)}` : t.debit_amount ? `−${formatINR(t.debit_amount)}` : "—"}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </CardContent>
-    </Card>
+    <div className="grid gap-4 lg:grid-cols-5">
+      {/* Channel split donut */}
+      <div className="rounded-xl border bg-card p-5 lg:col-span-2">
+        <p className="mb-1 text-sm font-semibold">Revenue by Channel</p>
+        <p className="mb-4 text-xs text-muted-foreground">Inflow breakdown by source</p>
+        <ChannelSplitDonut data={channels} />
+      </div>
+
+      {/* Anomaly panel */}
+      <div className="rounded-xl border bg-card p-5 lg:col-span-3">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold">Anomaly Radar</p>
+            <p className="text-xs text-muted-foreground">AI-detected issues that need attention</p>
+          </div>
+          {openAnomalies.length > 0 && (
+            <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
+              {openAnomalies.length} open
+            </span>
+          )}
+        </div>
+        <AnomalyPanel anomalies={openAnomalies} />
+      </div>
+    </div>
   );
 }
 
@@ -173,79 +182,57 @@ export default async function DashboardPage() {
   if (!result) redirect("/auth/login");
   if (!result.business) redirect("/onboarding");
 
-  const businessId = result.business.id;
+  const { business } = result;
+  const statCount = await db.$count(statements, eq(statements.business_id, business.id));
+
+  if (statCount === 0) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center">
+        <EmptyState
+          icon={Upload}
+          title="No data yet"
+          description="Upload your first bank statement to see KPIs, cash flow charts, and anomaly detection."
+        >
+          <Button asChild>
+            <Link href="/upload">Upload your first statement</Link>
+          </Button>
+        </EmptyState>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
+      {/* Page header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Welcome, {result.business.name}
+          <h1 className="text-xl font-bold tracking-tight">
+            {greeting()}, {business.name}
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Here&apos;s what landed in the last 30 days. Full dashboard with
-            charts and anomalies arrives in Layer 4.
-          </p>
+          <p className="mt-0.5 text-sm text-muted-foreground">{todayLabel()}</p>
         </div>
-      </div>
-
-      <Suspense fallback={
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton />
-        </div>
-      }>
-        <StatCards businessId={businessId} />
-      </Suspense>
-
-      <Suspense fallback={<RecentTransactionsSkeleton />}>
-        <RecentTransactions businessId={businessId} />
-      </Suspense>
-
-      <div className="flex flex-wrap gap-2">
-        <Button asChild>
-          <Link href="/upload">Upload another statement</Link>
-        </Button>
-        <Button asChild variant="outline">
-          <Link href="/transactions">View all transactions</Link>
+        <Button asChild size="sm" variant="outline">
+          <Link href="/upload" className="flex items-center gap-1.5">
+            <Upload className="h-3.5 w-3.5" />
+            Upload statement
+          </Link>
         </Button>
       </div>
 
-      <Card className="bg-muted/30">
-        <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
-          <p className="text-xs text-muted-foreground">
-            Signed in as{" "}
-            <span className="font-medium text-foreground">{result.user.email}</span>
-          </p>
-          <div className="w-40">
-            <SignOutButton />
-          </div>
-        </CardContent>
-      </Card>
+      {/* KPI tiles */}
+      <Suspense fallback={<KpiSkeleton />}>
+        <KpiSection businessId={business.id} />
+      </Suspense>
+
+      {/* Cash flow chart */}
+      <Suspense fallback={<ChartSkeleton />}>
+        <CashFlowSection businessId={business.id} />
+      </Suspense>
+
+      {/* Channel split + anomalies */}
+      <Suspense fallback={<BottomSkeleton />}>
+        <BottomSection businessId={business.id} />
+      </Suspense>
     </div>
-  );
-}
-
-// ─── Shared UI ──────────────────────────────────────────────
-
-interface StatCardProps {
-  label: string;
-  value: string;
-  icon: React.ReactNode;
-  valueClassName?: string;
-}
-
-function StatCard({ label, value, icon, valueClassName }: StatCardProps) {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {label}
-        </CardTitle>
-        {icon}
-      </CardHeader>
-      <CardContent>
-        <div className={cn("text-2xl font-bold", valueClassName)}>{value}</div>
-      </CardContent>
-    </Card>
   );
 }

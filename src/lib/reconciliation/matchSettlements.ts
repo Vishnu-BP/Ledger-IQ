@@ -50,13 +50,15 @@ export async function matchSettlement(
 
   const expectedAmount = Number(settlement.total_amount ?? 0);
 
-  // Bank credits attributed to Amazon in the settlement window (±5 days buffer).
+  // Match bank credits for the correct marketplace channel.
+  const channel =
+    settlement.marketplace === "flipkart" ? "ONLINE_FLIPKART" : "ONLINE_AMAZON";
+
   const windowStart = settlement.period_start;
   const windowEnd = settlement.deposit_date ?? settlement.period_end;
 
   let actualAmount = 0;
   if (windowStart && windowEnd) {
-    // Add 5 calendar days to the end date for bank processing delay.
     const endPlusFive = new Date(windowEnd);
     endPlusFive.setDate(endPlusFive.getDate() + 5);
     const windowEndStr = endPlusFive.toISOString().slice(0, 10);
@@ -69,7 +71,7 @@ export async function matchSettlement(
       .where(
         and(
           eq(transactions.business_id, businessId),
-          eq(transactions.channel, "ONLINE_AMAZON"),
+          eq(transactions.channel, channel),
           isNotNull(transactions.credit_amount),
           between(transactions.transaction_date, windowStart, windowEndStr),
         ),

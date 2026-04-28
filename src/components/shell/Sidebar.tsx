@@ -4,11 +4,9 @@
  * @file Sidebar.tsx — Persistent left navigation for the (app) route group.
  * @module components/shell
  *
- * Renders the 5 protected sections (Dashboard, Transactions, Upload,
- * Reconciliation, Reports) with lucide icons. Highlights the active route by
- * comparing usePathname to each link's href prefix.
- *
- * Bottom of sidebar holds Settings link (placeholder for now) and Sign out.
+ * Premium sidebar: Landmark brand icon, primary-tinted active states, and a
+ * user identity area at the bottom showing business initial + email.
+ * Active route detected by comparing usePathname to each link's href prefix.
  *
  * @dependencies next/link, next/navigation, lucide-react
  * @related app/(app)/layout.tsx, components/shell/SignOutButton.tsx
@@ -17,9 +15,9 @@
 import {
   FileText,
   GitCompareArrows,
+  Landmark,
   LayoutDashboard,
   ReceiptText,
-  Settings,
   Upload,
   type LucideIcon,
 } from "lucide-react";
@@ -29,6 +27,8 @@ import { usePathname } from "next/navigation";
 import { SignOutButton } from "@/components/shell/SignOutButton";
 import { cn } from "@/lib/utils";
 
+// ─── Types & data ──────────────────────────────────────────
+
 interface NavItem {
   href: string;
   label: string;
@@ -36,59 +36,74 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/transactions", label: "Transactions", icon: ReceiptText },
-  { href: "/upload", label: "Upload", icon: Upload },
+  { href: "/dashboard",      label: "Dashboard",      icon: LayoutDashboard  },
+  { href: "/transactions",   label: "Transactions",   icon: ReceiptText      },
+  { href: "/upload",         label: "Upload",         icon: Upload           },
   { href: "/reconciliation", label: "Reconciliation", icon: GitCompareArrows },
-  { href: "/reports", label: "Reports", icon: FileText },
+  { href: "/reports",        label: "Reports",        icon: FileText         },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  businessName?: string;
+  userEmail?: string;
+}
+
+// ─── Component ─────────────────────────────────────────────
+
+export function Sidebar({ businessName, userEmail }: SidebarProps) {
   const pathname = usePathname();
+  const initial = businessName?.charAt(0).toUpperCase() ?? "?";
 
   return (
     <aside className="flex h-screen w-60 shrink-0 flex-col border-r bg-card">
-      <div className="px-6 py-5">
-        <Link
-          href="/dashboard"
-          className="flex items-center gap-2 text-lg font-bold tracking-tight"
-        >
-          LedgerIQ
-        </Link>
+      {/* Brand */}
+      <div className="flex items-center gap-2.5 border-b px-5 py-5">
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
+          <Landmark className="h-3.5 w-3.5 text-primary-foreground" />
+        </div>
+        <span className="text-base font-bold tracking-tight">LedgerIQ</span>
       </div>
 
-      <nav className="flex-1 space-y-1 px-3">
+      {/* Navigation */}
+      <nav className="flex-1 space-y-0.5 px-3 py-3">
         {NAV_ITEMS.map((item) => {
-          const active =
-            pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                 active
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
               )}
             >
-              <Icon className="h-4 w-4" />
+              <Icon className="h-4 w-4 shrink-0" />
               {item.label}
             </Link>
           );
         })}
       </nav>
 
-      <div className="space-y-1 border-t px-3 py-3">
-        <button
-          type="button"
-          disabled
-          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground/60"
-        >
-          <Settings className="h-4 w-4" />
-          Settings
-        </button>
+      {/* User identity + sign out */}
+      <div className="border-t px-3 py-3">
+        {(businessName || userEmail) && (
+          <div className="mb-1 flex items-center gap-2.5 rounded-lg px-3 py-2">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[11px] font-bold text-primary">
+              {initial}
+            </div>
+            <div className="min-w-0 flex-1">
+              {businessName && (
+                <p className="truncate text-xs font-medium text-foreground">{businessName}</p>
+              )}
+              {userEmail && (
+                <p className="truncate text-[10px] text-muted-foreground">{userEmail}</p>
+              )}
+            </div>
+          </div>
+        )}
         <SignOutButton />
       </div>
     </aside>

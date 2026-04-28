@@ -18,3 +18,5 @@ export {
   useStatementStatus,
   type StatementStatusPayload,
 } from "@/lib/hooks/useStatementStatus";
+export { useHideOnScrollDown } from "@/lib/hooks/useHideOnScrollDown";
+export { useScrollSpy }        from "@/lib/hooks/useScrollSpy";

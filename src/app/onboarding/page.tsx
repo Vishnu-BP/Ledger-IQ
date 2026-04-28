@@ -20,9 +20,5 @@ export default async function OnboardingPage() {
   if (!result) redirect("/auth/login");
   if (result.business) redirect("/dashboard");
 
-  return (
-    <main className="flex min-h-screen items-center justify-center p-4">
-      <OnboardingWizard />
-    </main>
-  );
+  return <OnboardingWizard />;
 }

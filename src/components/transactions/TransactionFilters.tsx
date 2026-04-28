@@ -1,26 +1,26 @@
 "use client";
 
 /**
- * @file TransactionFilters.tsx — Date range + description search inputs.
+ * @file TransactionFilters.tsx — Compact horizontal filter bar for the transactions table.
  * @module components/transactions
  *
- * Filters live in the URL (per CLAUDE.md state-management rules — "URL state
- * (filters, periods) → Next.js searchParams"). Local form state holds the
- * draft; clicking Apply commits via router.replace which both syncs the URL
- * and triggers re-render of the consuming TransactionTable.
+ * Filters live in URL searchParams per CLAUDE.md conventions. Local draft
+ * state holds unsaved values; Apply commits via router.replace which triggers
+ * re-fetch in TransactionTable. All logic unchanged — only visual layout updated.
  *
  * @dependencies next/navigation
  * @related components/transactions/TransactionTable.tsx
  */
 
-import { Search, X } from "lucide-react";
+import { Search, SlidersHorizontal, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+
+// ─── Component ─────────────────────────────────────────────
 
 export function TransactionFilters() {
   const router = useRouter();
@@ -28,13 +28,10 @@ export function TransactionFilters() {
   const searchParams = useSearchParams();
 
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
-  const [startDate, setStartDate] = useState(
-    searchParams.get("start_date") ?? "",
-  );
+  const [startDate, setStartDate] = useState(searchParams.get("start_date") ?? "");
   const [endDate, setEndDate] = useState(searchParams.get("end_date") ?? "");
   const needsReview = searchParams.get("needs_review") === "1";
 
-  // Keep local state in sync if URL changes externally (e.g. browser back).
   useEffect(() => {
     setSearch(searchParams.get("search") ?? "");
     setStartDate(searchParams.get("start_date") ?? "");
@@ -69,81 +66,65 @@ export function TransactionFilters() {
   const hasFilters = !!(search || startDate || endDate || needsReview);
 
   return (
-    <form
-      onSubmit={apply}
-      className="grid gap-3 rounded-lg border bg-card p-4 sm:grid-cols-[1fr_auto_auto_auto]"
-    >
-      <div className="space-y-1.5">
-        <Label htmlFor="filter-search" className="text-xs">
-          Search description
-        </Label>
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+    <form onSubmit={apply}>
+      <div className="flex flex-wrap items-center gap-2">
+        <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+
+        {/* Search */}
+        <div className="relative min-w-[180px] flex-1 max-w-xs">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
-            id="filter-search"
-            placeholder="UPI, AWS, ZOMATO, …"
-            className="pl-8"
+            aria-label="Search description"
+            placeholder="UPI, AWS, ZOMATO…"
+            className="h-9 pl-8 text-sm"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-      </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="filter-start" className="text-xs">
-          From
-        </Label>
+        {/* Date range */}
         <Input
-          id="filter-start"
           type="date"
+          aria-label="From date"
+          className="h-9 w-[135px] text-sm"
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
         />
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="filter-end" className="text-xs">
-          To
-        </Label>
+        <span className="text-xs text-muted-foreground">→</span>
         <Input
-          id="filter-end"
           type="date"
+          aria-label="To date"
+          className="h-9 w-[135px] text-sm"
           value={endDate}
           onChange={(e) => setEndDate(e.target.value)}
         />
-      </div>
 
-      <div className="flex items-end gap-2">
-        <Button type="submit" size="sm">
-          Apply
-        </Button>
-        {hasFilters && (
-          <Button type="button" variant="ghost" size="sm" onClick={clear}>
-            <X className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
-
-      <div className="sm:col-span-4">
+        {/* Needs review toggle */}
         <button
           type="button"
           onClick={toggleNeedsReview}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+            "inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors",
             needsReview
-              ? "border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100"
-              : "border-border bg-background text-muted-foreground hover:bg-muted",
+              ? "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
+              : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
           )}
         >
-          <span
-            className={cn(
-              "h-1.5 w-1.5 rounded-full",
-              needsReview ? "bg-amber-500" : "bg-muted-foreground/40",
-            )}
-          />
+          <span className={cn(
+            "h-1.5 w-1.5 rounded-full",
+            needsReview ? "bg-amber-500" : "bg-muted-foreground/40",
+          )} />
           Needs review
           {needsReview && <X className="h-3 w-3" />}
         </button>
+
+        <Button type="submit" size="sm" className="h-9">Apply</Button>
+
+        {hasFilters && (
+          <Button type="button" variant="ghost" size="sm" className="h-9 text-muted-foreground" onClick={clear}>
+            <X className="mr-1 h-3.5 w-3.5" />Clear
+          </Button>
+        )}
       </div>
     </form>
   );

@@ -2,14 +2,14 @@
  * @file Header.tsx — Top bar inside the (app) layout.
  * @module components/shell
  *
- * Server Component — receives business name + email already resolved by the
- * parent layout. Shows business name, period selector placeholder (real
- * implementation lands in Layer 4 dashboard), and a user-email pill.
+ * RSC that receives business name + email from the parent layout.
+ * Includes a theme toggle (client component) and a user-initial avatar.
+ * Period selector placeholder removed — period filtering lives on individual pages.
  *
- * @related app/(app)/layout.tsx
+ * @related app/(app)/layout.tsx, components/landing/ThemeToggle.tsx
  */
 
-import { Calendar } from "lucide-react";
+import { ThemeToggle } from "@/components/landing/ThemeToggle";
 
 interface HeaderProps {
   businessName: string;
@@ -17,18 +17,24 @@ interface HeaderProps {
 }
 
 export function Header({ businessName, userEmail }: HeaderProps) {
+  const initial = (userEmail ?? businessName).charAt(0).toUpperCase();
+
   return (
-    <header className="flex h-14 items-center justify-between border-b bg-card px-6">
-      <div className="flex items-center gap-3">
-        <h1 className="text-base font-semibold">{businessName}</h1>
-      </div>
-      <div className="flex items-center gap-3 text-sm text-muted-foreground">
-        <div className="flex items-center gap-1.5 rounded-md border px-2.5 py-1">
-          <Calendar className="h-3.5 w-3.5" />
-          <span>This month</span>
-        </div>
+    <header className="flex h-14 shrink-0 items-center justify-between border-b bg-card px-6">
+      {/* Business name */}
+      <p className="text-sm font-semibold text-foreground">{businessName}</p>
+
+      {/* Right side actions */}
+      <div className="flex items-center gap-2">
+        <ThemeToggle />
+
         {userEmail && (
-          <span className="hidden truncate sm:block">{userEmail}</span>
+          <div className="flex items-center gap-2 rounded-full border bg-muted/50 pl-1.5 pr-3 py-1">
+            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">
+              {initial}
+            </div>
+            <span className="hidden text-xs text-muted-foreground sm:block">{userEmail}</span>
+          </div>
         )}
       </div>
     </header>

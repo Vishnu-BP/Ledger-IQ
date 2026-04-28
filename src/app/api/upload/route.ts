@@ -111,13 +111,25 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // ─── Flipkart settlement (stub — Layer 4.3 partial) ──
+    // ─── Flipkart settlement ──────────────────────────────
     if (uploadType === "flipkart_settlement") {
-      return errorResponse(
-        501,
-        "not_implemented",
-        "Flipkart settlement upload is coming soon",
-      );
+      const created = await uploadSettlement({
+        businessId: result.business.id,
+        file,
+        marketplace: "flipkart",
+      });
+      reconcileAsync(result.business.id, created.id);
+      return NextResponse.json({
+        id: created.id,
+        type: uploadType,
+        status: "uploaded",
+        filename: file.name,
+        settlement_id: created.settlement_id_external,
+        total_amount: created.total_amount,
+        settlement_lines_count: created.settlement_lines_count,
+        period_start: created.period_start,
+        period_end: created.period_end,
+      });
     }
 
     // ─── Bank statement ───────────────────────────────────

@@ -27,15 +27,14 @@ export default async function TransactionsPage() {
     .orderBy(asc(gst_categories.category));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Transactions</h1>
-        <p className="text-sm text-muted-foreground">
-          Every line item from your bank statements, AI-categorised. Toggle
-          &quot;Needs review&quot; to focus on rows where the model wasn&apos;t sure.
+        <h1 className="text-xl font-bold tracking-tight">Transactions</h1>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          Every line item from your uploaded statements, AI-categorised.
+          Use &ldquo;Needs review&rdquo; to focus on low-confidence rows.
         </p>
       </div>
-
       <TransactionTable categories={categoryRows} />
     </div>
   );
