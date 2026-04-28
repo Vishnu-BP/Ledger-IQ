@@ -20,6 +20,7 @@ import { getCurrentBusiness } from "@/lib/auth";
 import { createLogger } from "@/lib/logger";
 import {
   TransactionNotFoundError,
+  applyOverrideToSimilar,
   deleteTransaction,
   updateTransaction,
 } from "@/lib/transactions";
@@ -30,6 +31,7 @@ const patchSchema = z.object({
   category: z.string().max(120).nullable().optional(),
   channel: z.string().max(40).nullable().optional(),
   gst_head: z.string().max(120).nullable().optional(),
+  apply_to_similar: z.boolean().optional().default(false),
 });
 
 function errorResponse(status: number, code: string, message: string) {
@@ -73,10 +75,37 @@ export async function PATCH(
   }
 
   try {
+    const { apply_to_similar, ...patch } = parsed.data;
+
+    if (apply_to_similar) {
+      // Cascading override needs both category and a non-empty channel: an
+      // override row in `category_overrides` requires both fields and the
+      // sibling UPDATE blanks any prior values otherwise.
+      if (!patch.category) {
+        return errorResponse(
+          400,
+          "validation_error",
+          "category is required when apply_to_similar=true",
+        );
+      }
+      const result = await applyOverrideToSimilar({
+        id: params.id,
+        businessId: auth.business.id,
+        category: patch.category,
+        channel: patch.channel ?? null,
+        gst_head: patch.gst_head ?? null,
+      });
+      return NextResponse.json({
+        transaction: result.source,
+        similar_count: result.similar_count,
+        override_id: result.override_id,
+      });
+    }
+
     const updated = await updateTransaction({
       id: params.id,
       businessId: auth.business.id,
-      ...parsed.data,
+      ...patch,
     });
     return NextResponse.json({ transaction: updated });
   } catch (err) {

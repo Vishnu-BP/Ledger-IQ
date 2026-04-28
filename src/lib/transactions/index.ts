@@ -8,6 +8,11 @@ export {
   TransactionNotFoundError,
   type UpdateTransactionInput,
 } from "@/lib/transactions/updateTransaction";
+export {
+  applyOverrideToSimilar,
+  type ApplyOverrideToSimilarInput,
+  type ApplyOverrideToSimilarResult,
+} from "@/lib/transactions/applyOverrideToSimilar";
 export { deleteTransaction } from "@/lib/transactions/deleteTransaction";
 export {
   CHANNELS,

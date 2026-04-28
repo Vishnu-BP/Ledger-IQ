@@ -28,6 +28,7 @@ import {
   pgTable,
   text,
   timestamp,
+  unique,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -265,18 +266,27 @@ export const reports = pgTable("reports", {
 
 // ─── 9. category_overrides ─────────────────────────────────────
 
-export const category_overrides = pgTable("category_overrides", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  business_id: uuid("business_id")
-    .notNull()
-    .references(() => businesses.id, { onDelete: "cascade" }),
+export const category_overrides = pgTable(
+  "category_overrides",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    business_id: uuid("business_id")
+      .notNull()
+      .references(() => businesses.id, { onDelete: "cascade" }),
 
-  description_pattern: text("description_pattern").notNull(),
-  override_category: text("override_category").notNull(),
-  override_channel: text("override_channel"),
+    description_pattern: text("description_pattern").notNull(),
+    override_category: text("override_category").notNull(),
+    override_channel: text("override_channel"),
 
-  created_at: timestamp("created_at").defaultNow(),
-});
+    created_at: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    businessPatternUniq: unique("category_overrides_business_id_pattern_uniq").on(
+      t.business_id,
+      t.description_pattern,
+    ),
+  }),
+);
 
 // ─── 10. gst_categories (static seed, public-readable) ─────────
 

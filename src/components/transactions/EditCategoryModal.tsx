@@ -4,12 +4,15 @@
  * @file EditCategoryModal.tsx — Manual category + channel + GST head override.
  * @module components/transactions
  *
- * Layer 2 scope: simple selects backed by the seeded gst_categories table and
- * the channel constants. Stage 3.5 will extend this with confidence
- * indicators, AI reasoning tooltip, and an "apply to similar" checkbox.
+ * Stage 3.5 extends Layer 2's basic edit form with the "Apply to all
+ * transactions with this exact description" checkbox. When checked, the
+ * service writes a `category_overrides` row + cascades the new fields to
+ * every sibling row in the same business whose lower(trim(description))
+ * matches — and the success toast reports `Updated and applied to N similar`.
  *
- * Uses useUpdateTransaction (optimistic) so the table reflects the change
- * immediately on submit. Errors roll back via the hook's onError handler.
+ * Uses useUpdateTransaction (optimistic for the source row) so the table
+ * reflects the change immediately on submit. Errors roll back via the hook's
+ * onError handler.
  *
  * @dependencies @/lib/hooks/useUpdateTransaction, sonner
  * @related components/transactions/TransactionTable.tsx, lib/hooks/useUpdateTransaction.ts
@@ -19,6 +22,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -36,7 +40,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useUpdateTransaction } from "@/lib/hooks";
-import { CHANNELS } from "@/lib/transactions";
+import { CHANNELS } from "@/lib/transactions/channels";
 import type { Transaction } from "@/types/transaction";
 
 export interface CategoryOption {
@@ -60,11 +64,13 @@ export function EditCategoryModal({
   const update = useUpdateTransaction();
   const [category, setCategory] = useState<string>("");
   const [channel, setChannel] = useState<string>("");
+  const [applyToSimilar, setApplyToSimilar] = useState(false);
 
   useEffect(() => {
     if (transaction) {
       setCategory(transaction.category ?? "");
       setChannel(transaction.channel ?? "");
+      setApplyToSimilar(false);
     }
   }, [transaction]);
 
@@ -76,13 +82,23 @@ export function EditCategoryModal({
       id: transaction.id,
       category: category || null,
       channel: channel || null,
+      apply_to_similar: applyToSimilar,
     };
     // Auto-derive gst_head from selected category.
     const matched = categories.find((c) => c.category === category);
     if (matched) payload.gst_head = matched.gst_section;
     update.mutate(payload, {
-      onSuccess: () => {
-        toast.success("Transaction updated");
+      onSuccess: (data) => {
+        if (applyToSimilar) {
+          const n = data.similar_count ?? 0;
+          toast.success(
+            n > 0
+              ? `Updated and applied to ${n} similar transaction${n === 1 ? "" : "s"}`
+              : "Updated. Override saved for future uploads.",
+          );
+        } else {
+          toast.success("Transaction updated");
+        }
         onOpenChange(false);
       },
       onError: (err) => {
@@ -132,6 +148,28 @@ export function EditCategoryModal({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="flex items-start gap-3 rounded-md border border-dashed bg-muted/40 px-3 py-2.5">
+            <Checkbox
+              id="apply-to-similar"
+              checked={applyToSimilar}
+              onCheckedChange={(v) => setApplyToSimilar(v === true)}
+              disabled={!category}
+              className="mt-0.5"
+            />
+            <div className="flex-1 space-y-0.5">
+              <Label
+                htmlFor="apply-to-similar"
+                className="cursor-pointer text-sm font-medium leading-none"
+              >
+                Apply to all transactions with this exact description
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Saves an override rule. Future uploads with the same description
+                pick up this categorisation automatically.
+              </p>
+            </div>
           </div>
         </div>
 

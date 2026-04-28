@@ -11,7 +11,7 @@
  * @related lib/parsers/bankStatementParser.ts, db/schema.ts
  */
 
-export type BankFormat = "hdfc" | "icici";
+export type BankFormat = "hdfc" | "icici" | "universal";
 
 export interface ParsedTransaction {
   /** ISO date 'YYYY-MM-DD' */

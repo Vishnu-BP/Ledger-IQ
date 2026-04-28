@@ -56,6 +56,7 @@ export function TransactionTable({ categories }: TransactionTableProps) {
     start_date: searchParams.get("start_date") ?? undefined,
     end_date: searchParams.get("end_date") ?? undefined,
     search: searchParams.get("search") ?? undefined,
+    needs_review: searchParams.get("needs_review") === "1" ? "1" : undefined,
   };
 
   const { data, isLoading, isError, error } = useTransactions(filters);
