@@ -4,11 +4,9 @@
  * @file Sidebar.tsx — Persistent left navigation for the (app) route group.
  * @module components/shell
  *
- * Renders the 5 protected sections (Dashboard, Transactions, Upload,
- * Reconciliation, Reports) with lucide icons. Highlights the active route by
- * comparing usePathname to each link's href prefix.
- *
- * Bottom of sidebar holds Settings link (placeholder for now) and Sign out.
+ * Premium sidebar: Landmark brand icon, primary-tinted active states, and a
+ * user identity area at the bottom showing business initial + email.
+ * Active route detected by comparing usePathname to each link's href prefix.
  *
  * @dependencies next/link, next/navigation, lucide-react
  * @related app/(app)/layout.tsx, components/shell/SignOutButton.tsx
@@ -17,9 +15,9 @@
 import {
   FileText,
   GitCompareArrows,
+  Landmark,
   LayoutDashboard,
   ReceiptText,
-  Settings,
   Upload,
   BarChart3,
   ArrowRight,
@@ -31,6 +29,8 @@ import { usePathname } from "next/navigation";
 
 import { SignOutButton } from "@/components/shell/SignOutButton";
 import { cn } from "@/lib/utils";
+
+// ─── Types & data ──────────────────────────────────────────
 
 interface NavItem {
   href: string;
@@ -46,93 +46,68 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/reports", label: "Reports", icon: FileText },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  businessName?: string;
+  userEmail?: string;
+}
+
+// ─── Component ─────────────────────────────────────────────
+
+export function Sidebar({ businessName, userEmail }: SidebarProps) {
   const pathname = usePathname();
+  const initial = businessName?.charAt(0).toUpperCase() ?? "?";
 
   return (
-    <aside className="hidden lg:flex h-screen w-[420px] shrink-0 flex-col bg-[#030113] text-white border-r border-white/5 shadow-2xl overflow-hidden">
-      {/* Logo Header */}
-      <div className="px-6 py-8">
-        <Link
-          href="/dashboard"
-          className="flex items-center gap-3 text-xl font-bold tracking-tight text-white group"
-        >
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 shadow-lg shadow-indigo-600/20 transition-transform group-hover:scale-105">
-            <BarChart3 className="h-6 w-6 text-white" />
-          </div>
-          <span className="tracking-tight">LedgerIQ</span>
-        </Link>
+    <aside className="flex h-screen w-60 shrink-0 flex-col border-r bg-card">
+      {/* Brand */}
+      <div className="flex items-center gap-2.5 border-b px-5 py-5">
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
+          <Landmark className="h-3.5 w-3.5 text-primary-foreground" />
+        </div>
+        <span className="text-base font-bold tracking-tight">LedgerIQ</span>
       </div>
 
-      {/* Main Navigation */}
-      <nav className="flex-1 space-y-1 px-4">
+      {/* Navigation */}
+      <nav className="flex-1 space-y-0.5 px-3 py-3">
         {NAV_ITEMS.map((item) => {
-          const active =
-            pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "group flex items-center gap-3 rounded-2xl px-4 py-3.5 text-[15px] font-semibold transition-all duration-200",
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                 active
-                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30"
-                  : "text-white/40 hover:bg-white/5 hover:text-white"
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
               )}
             >
-              <Icon className={cn(
-                "h-5 w-5 transition-colors",
-                active ? "text-white" : "text-white/40 group-hover:text-white"
-              )} />
+              <Icon className="h-4 w-4 shrink-0" />
               {item.label}
             </Link>
           );
         })}
       </nav>
 
-      {/* Promotional Card - Exactly like the reference */}
-      <div className="px-4 mb-6">
-        <div className="relative overflow-hidden rounded-[32px] bg-gradient-to-b from-white/10 to-transparent border border-white/10 p-6 backdrop-blur-xl">
-          <div className="flex flex-col items-center text-center">
-            <div className="relative mb-4 h-24 w-24">
-              <Image 
-                src="/images/promo-sidebar.png" 
-                alt="Promo Illustration" 
-                fill 
-                className="object-contain"
-              />
+      {/* User identity + sign out */}
+      <div className="border-t px-3 py-3">
+        {(businessName || userEmail) && (
+          <div className="mb-1 flex items-center gap-2.5 rounded-lg px-3 py-2">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[11px] font-bold text-primary">
+              {initial}
             </div>
-            <h4 className="text-sm font-bold text-white mb-2 leading-snug">
-              Save 20+ hours<br/>every month
-            </h4>
-            <p className="text-[11px] text-white/50 mb-5 leading-relaxed">
-              Automate your bookkeeping and focus on growth.
-            </p>
-            <Link 
-              href="/dashboard/automation"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-[11px] font-bold text-white shadow-lg shadow-indigo-600/20 transition-all hover:bg-indigo-700 hover:scale-[1.02] active:scale-[0.98]"
-            >
-              Explore Automation
-              <ArrowRight className="h-3 w-3" />
-            </Link>
+            <div className="min-w-0 flex-1">
+              {businessName && (
+                <p className="truncate text-xs font-medium text-foreground">{businessName}</p>
+              )}
+              {userEmail && (
+                <p className="truncate text-[10px] text-muted-foreground">{userEmail}</p>
+              )}
+            </div>
           </div>
-        </div>
-      </div>
-
-      {/* Bottom Navigation */}
-      <div className="space-y-1 border-t border-white/5 px-4 py-6 bg-black/10">
-        <button
-          type="button"
-          disabled
-          className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-white/30 cursor-not-allowed transition-colors hover:text-white/50 group"
-        >
-          <Settings className="h-5 w-5 text-white/20 group-hover:text-white/40" />
-          Settings
-        </button>
-        <div className="px-0">
-          <SignOutButton />
-        </div>
+        )}
+        <SignOutButton />
       </div>
     </aside>
   );

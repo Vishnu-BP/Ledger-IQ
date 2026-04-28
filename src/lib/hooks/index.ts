@@ -18,3 +18,15 @@ export {
   useStatementStatus,
   type StatementStatusPayload,
 } from "@/lib/hooks/useStatementStatus";
+export {
+  useUploadStatus,
+  type UploadStatusPayload,
+  type UploadStatusValue,
+} from "@/lib/hooks/useUploadStatus";
+export {
+  useUploadHistory,
+  type UploadHistoryItem,
+} from "@/lib/hooks/useUploadHistory";
+export { useHideOnScrollDown } from "@/lib/hooks/useHideOnScrollDown";
+export { useScrollSpy }        from "@/lib/hooks/useScrollSpy";
+export { useChat, type UseChatResult } from "@/lib/hooks/useChat";

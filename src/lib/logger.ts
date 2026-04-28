@@ -22,7 +22,8 @@ export type LogTag =
   | "DB"
   | "LLM"
   | "MW"
-  | "UI";
+  | "UI"
+  | "CHAT";
 
 interface Logger {
   info: (message: string, context?: Record<string, unknown>) => void;

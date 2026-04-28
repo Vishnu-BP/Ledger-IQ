@@ -52,8 +52,8 @@ export async function getGstr3bData(businessId: string): Promise<Gstr3bData> {
       // 3.1 Outward Supplies
       db
         .select({
-          gross: sql<string>`COALESCE(SUM(${transactions.credit_amount}), '0')`,
-          tax: sql<string>`COALESCE(SUM(${transactions.gst_amount}), '0')`,
+          gross: sql<string>`COALESCE(SUM(${transactions.credit_amount}), 0::numeric)`,
+          tax: sql<string>`COALESCE(SUM(${transactions.gst_amount}), 0::numeric)`,
         })
         .from(transactions)
         .where(
@@ -66,7 +66,7 @@ export async function getGstr3bData(businessId: string): Promise<Gstr3bData> {
       // 4A ITC — Goods
       db
         .select({
-          tax: sql<string>`COALESCE(SUM(${transactions.gst_amount}), '0')`,
+          tax: sql<string>`COALESCE(SUM(${transactions.gst_amount}), 0::numeric)`,
         })
         .from(transactions)
         .where(
@@ -79,7 +79,7 @@ export async function getGstr3bData(businessId: string): Promise<Gstr3bData> {
       // 4A ITC — Services
       db
         .select({
-          tax: sql<string>`COALESCE(SUM(${transactions.gst_amount}), '0')`,
+          tax: sql<string>`COALESCE(SUM(${transactions.gst_amount}), 0::numeric)`,
         })
         .from(transactions)
         .where(
@@ -92,7 +92,7 @@ export async function getGstr3bData(businessId: string): Promise<Gstr3bData> {
       // 4A ITC — Capital Goods
       db
         .select({
-          tax: sql<string>`COALESCE(SUM(${transactions.gst_amount}), '0')`,
+          tax: sql<string>`COALESCE(SUM(${transactions.gst_amount}), 0::numeric)`,
         })
         .from(transactions)
         .where(
@@ -105,7 +105,7 @@ export async function getGstr3bData(businessId: string): Promise<Gstr3bData> {
       // 4B Blocked ITC
       db
         .select({
-          tax: sql<string>`COALESCE(SUM(${transactions.gst_amount}), '0')`,
+          tax: sql<string>`COALESCE(SUM(${transactions.gst_amount}), 0::numeric)`,
         })
         .from(transactions)
         .where(
@@ -119,8 +119,8 @@ export async function getGstr3bData(businessId: string): Promise<Gstr3bData> {
       db
         .select({
           total: sql<string>`
-            COALESCE(SUM(${transactions.debit_amount}), '0') +
-            COALESCE(SUM(${transactions.credit_amount}), '0')
+            COALESCE(SUM(${transactions.debit_amount}), 0::numeric) +
+            COALESCE(SUM(${transactions.credit_amount}), 0::numeric)
           `,
         })
         .from(transactions)

@@ -20,6 +20,7 @@ import { db } from "@/db/client";
 import { settlement_lines, settlements } from "@/db/schema";
 import { createLogger } from "@/lib/logger";
 import { parseAmazonSettlement } from "@/lib/parsers/amazonSettlementParser";
+import { parseFlipkartSettlement } from "@/lib/parsers/flipkartSettlementParser";
 import { ParseError } from "@/lib/parsers/types";
 import { uploadStatementFile, StorageError } from "@/lib/storage";
 import { computeFileHash } from "@/lib/uploads/computeFileHash";
@@ -70,9 +71,12 @@ export async function uploadSettlement(input: {
     contentType: "text/csv",
   });
 
-  // Parse.
+  // Parse — dispatch by marketplace.
   const csvText = buffer.toString("utf-8");
-  const parsed = parseAmazonSettlement(csvText);
+  const parsed =
+    input.marketplace === "flipkart"
+      ? parseFlipkartSettlement(csvText)
+      : parseAmazonSettlement(csvText);
 
   // INSERT settlement row.
   const [created] = await db

@@ -10,7 +10,7 @@
  * @related app/(app)/dashboard/page.tsx, lib/analytics/cashFlow.ts
  */
 
-import { and, count, eq, sql } from "drizzle-orm";
+import { and, count, desc, eq, sql } from "drizzle-orm";
 
 import { db } from "@/db/client";
 import { anomalies, transactions } from "@/db/schema";
@@ -31,7 +31,7 @@ export async function getTotals(businessId: string): Promise<DashboardTotals> {
       // Total Revenue — sum of all credits
       db
         .select({
-          total: sql<string>`COALESCE(SUM(${transactions.credit_amount}), '0')`,
+          total: sql<string>`COALESCE(SUM(${transactions.credit_amount}), 0::numeric)`,
         })
         .from(transactions)
         .where(eq(transactions.business_id, businessId)),
@@ -39,7 +39,7 @@ export async function getTotals(businessId: string): Promise<DashboardTotals> {
       // GST Liability — gst_amount on outward supplies rows only
       db
         .select({
-          total: sql<string>`COALESCE(SUM(${transactions.gst_amount}), '0')`,
+          total: sql<string>`COALESCE(SUM(${transactions.gst_amount}), 0::numeric)`,
         })
         .from(transactions)
         .where(
@@ -49,14 +49,15 @@ export async function getTotals(businessId: string): Promise<DashboardTotals> {
           ),
         ),
 
-      // Avg daily net burn over last 30 days (outflow - inflow)
+      // Avg daily net burn over last 30 days (outflow - inflow).
+      // COALESCE arg must match numeric type — `0::numeric` not `'0'`.
       db
         .select({
           avg_burn: sql<string>`
             COALESCE(
               (SUM(${transactions.debit_amount}) - SUM(${transactions.credit_amount}))
               / NULLIF(COUNT(DISTINCT ${transactions.transaction_date}), 0),
-              '0'
+              0::numeric
             )`,
         })
         .from(transactions)
@@ -72,10 +73,7 @@ export async function getTotals(businessId: string): Promise<DashboardTotals> {
         .select({ balance: transactions.closing_balance })
         .from(transactions)
         .where(eq(transactions.business_id, businessId))
-        .orderBy(
-          sql`${transactions.transaction_date} DESC`,
-          sql`${transactions.created_at} DESC`,
-        )
+        .orderBy(desc(transactions.transaction_date), desc(transactions.created_at))
         .limit(1),
 
       // Open anomalies

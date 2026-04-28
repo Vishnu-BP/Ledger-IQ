@@ -4,11 +4,11 @@
  * @file TransactionRow.tsx — Single row in the transactions table.
  * @module components/transactions
  *
- * Renders the row alongside its provenance pill (ConfidenceBadge — green
- * Rule/User, percent for LLM rows, red for fallback) and a hover-only
- * AiReasoningTooltip that surfaces the LLM's one-line justification.
+ * Actions (edit, delete) are hidden by default and revealed on row hover via
+ * Tailwind group/group-hover utilities — keeps the table clean when scanning.
+ * Amounts are prefixed: −₹X for debits, +₹X for credits.
  *
- * @related components/transactions/TransactionTable.tsx, ConfidenceBadge.tsx, AiReasoningTooltip.tsx
+ * @related TransactionTable.tsx, ConfidenceBadge.tsx, AiReasoningTooltip.tsx
  */
 
 import { Pencil, Trash2, CheckCircle2, Star, Info } from "lucide-react";
@@ -23,96 +23,109 @@ import type { Transaction } from "@/types/transaction";
 import { AiReasoningTooltip } from "./AiReasoningTooltip";
 import { ConfidenceBadge } from "./ConfidenceBadge";
 
+// ─── Types ─────────────────────────────────────────────────
+
 interface TransactionRowProps {
   transaction: Transaction;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-export function TransactionRow({
-  transaction: t,
-  onEdit,
-  onDelete,
-}: TransactionRowProps) {
-  const needsReview = t.confidence_score !== null && t.confidence_score < 0.8;
+// ─── Component ─────────────────────────────────────────────
 
+export function TransactionRow({ transaction: t, onEdit, onDelete }: TransactionRowProps) {
   return (
-    <TableRow className="group border-b border-slate-50 dark:border-zinc-900/50 hover:bg-slate-50/50 dark:hover:bg-zinc-900/30 transition-all duration-200">
-      <TableCell className="whitespace-nowrap text-[11px] font-black text-slate-400 tabular-nums uppercase tracking-tight pl-6">
+    <TableRow className="group transition-colors hover:bg-muted/30">
+      {/* Date */}
+      <TableCell className="py-3 text-xs text-muted-foreground whitespace-nowrap">
         {formatDate(t.transaction_date)}
       </TableCell>
-      <TableCell className="max-w-[400px] truncate text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight py-6" title={t.description}>
+
+      {/* Description */}
+      <TableCell className="max-w-[260px] truncate py-3 text-sm font-medium" title={t.description}>
         {t.description}
       </TableCell>
-      <TableCell>
+
+      {/* Channel */}
+      <TableCell className="py-3">
         {t.channel ? (
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-zinc-900 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest border border-slate-100/50">
+          <Badge variant="secondary" className="rounded-full font-normal text-xs">
             {getChannelLabel(t.channel)}
           </div>
         ) : (
           <AwaitingAi />
         )}
       </TableCell>
-      <TableCell>
+
+      {/* Category + confidence + AI reasoning */}
+      <TableCell className="py-3 text-sm">
         {t.category ? (
-          <div className="flex items-center gap-3">
-            <span className="text-[13px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-tight">{t.category}</span>
-            <ConfidenceBadge
-              score={t.confidence_score}
-              modelUsed={t.model_used}
-            />
-          </div>
+          <span className="inline-flex items-center gap-1.5 flex-wrap">
+            <span className="text-sm">{t.category}</span>
+            <ConfidenceBadge score={t.confidence_score} modelUsed={t.model_used} />
+            <AiReasoningTooltip reasoning={t.ai_reasoning} />
+          </span>
         ) : (
           <AwaitingAi />
         )}
       </TableCell>
-      <TableCell className="text-right text-sm font-black text-slate-900 dark:text-slate-400 tabular-nums pr-8">
-        {t.debit_amount ? `₹${Number(t.debit_amount).toLocaleString()}` : "—"}
+
+      {/* Debit */}
+      <TableCell className={cn(
+        "py-3 text-right text-sm font-medium tabular-nums whitespace-nowrap",
+        t.debit_amount ? "text-destructive" : "text-muted-foreground/30",
+      )}>
+        {t.debit_amount ? `−${formatINR(t.debit_amount)}` : "—"}
       </TableCell>
-      <TableCell className="text-right text-sm font-black text-emerald-600 tabular-nums pr-8">
-        {t.credit_amount ? `₹${Number(t.credit_amount).toLocaleString()}` : "—"}
+
+      {/* Credit */}
+      <TableCell className={cn(
+        "py-3 text-right text-sm font-medium tabular-nums whitespace-nowrap",
+        t.credit_amount ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground/30",
+      )}>
+        {t.credit_amount ? `+${formatINR(t.credit_amount)}` : "—"}
       </TableCell>
-      <TableCell className="text-right text-[11px] font-black text-slate-400 tabular-nums uppercase tracking-widest pr-8">
-        ₹{Number(t.closing_balance).toLocaleString()}
+
+      {/* Balance */}
+      <TableCell className="py-3 text-right text-xs text-muted-foreground tabular-nums whitespace-nowrap">
+        {formatINR(t.closing_balance)}
       </TableCell>
-      <TableCell>
-        {needsReview ? (
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-600 border border-amber-100/50">
-            <Star className="h-3 w-3 fill-current" />
-            <span className="text-[10px] font-black uppercase tracking-widest">Needs review</span>
-          </div>
-        ) : (
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100/50">
-            <CheckCircle2 className="h-3 w-3" />
-            <span className="text-[10px] font-black uppercase tracking-widest">Categorised</span>
-          </div>
-        )}
-      </TableCell>
-      <TableCell className="text-right pr-6">
-        <div className="flex justify-end items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200">
-          <button
+
+      {/* Actions — only visible on row hover */}
+      <TableCell className="py-3 text-right">
+        <div className="flex justify-end gap-0.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
             onClick={onEdit}
-            className="h-10 w-10 flex items-center justify-center rounded-2xl bg-white border border-slate-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-lg hover:shadow-indigo-600/10 transition-all"
-            aria-label="Edit"
+            aria-label="Edit category"
           >
-            <Pencil className="h-4 w-4" />
-          </button>
-          <button
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-destructive/70 hover:text-destructive"
             onClick={onDelete}
-            className="h-10 w-10 flex items-center justify-center rounded-2xl bg-white border border-slate-100 text-slate-400 hover:text-rose-600 hover:border-rose-100 hover:shadow-lg hover:shadow-rose-600/10 transition-all"
-            aria-label="Delete"
+            aria-label="Delete transaction"
           >
-            <Trash2 className="h-4 w-4" />
-          </button>
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
         </div>
       </TableCell>
     </TableRow>
   );
 }
 
+// ─── Helpers ───────────────────────────────────────────────
+
 function AwaitingAi() {
   return (
-    <span className="px-2 py-1 rounded-lg bg-slate-50 dark:bg-zinc-800 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+    <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+      <span className="h-1 w-1 animate-pulse rounded-full bg-muted-foreground/50" />
       Awaiting AI
     </span>
   );

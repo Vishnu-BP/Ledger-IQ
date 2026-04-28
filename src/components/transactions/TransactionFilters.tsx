@@ -1,25 +1,26 @@
 "use client";
 
 /**
- * @file TransactionFilters.tsx — Date range + description search inputs.
+ * @file TransactionFilters.tsx — Compact horizontal filter bar for the transactions table.
  * @module components/transactions
  *
- * Filters live in the URL (per CLAUDE.md state-management rules — "URL state
- * (filters, periods) → Next.js searchParams"). Local form state holds the
- * draft; clicking Apply commits via router.replace which both syncs the URL
- * and triggers re-render of the consuming TransactionTable.
+ * Filters live in URL searchParams per CLAUDE.md conventions. Local draft
+ * state holds unsaved values; Apply commits via router.replace which triggers
+ * re-fetch in TransactionTable. All logic unchanged — only visual layout updated.
  *
  * @dependencies next/navigation
  * @related components/transactions/TransactionTable.tsx
  */
 
-import { Search, X, Calendar as CalendarIcon, ChevronDown } from "lucide-react";
+import { Search, SlidersHorizontal, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+
+// ─── Component ─────────────────────────────────────────────
 
 export function TransactionFilters() {
   const router = useRouter();
@@ -63,83 +64,67 @@ export function TransactionFilters() {
   }
 
   return (
-    <div className="space-y-4">
-      <form onSubmit={apply} className="flex flex-wrap items-end gap-5 bg-white dark:bg-zinc-950 p-8 rounded-[40px] border border-slate-100 dark:border-zinc-800 shadow-sm">
+    <form onSubmit={apply}>
+      <div className="flex flex-wrap items-center gap-2">
+        <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+
         {/* Search */}
-        <div className="flex-1 min-w-[320px]">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 ml-1">Search Analytics</p>
-          <div className="relative group">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
-            <input
-              type="text"
-              placeholder="Description, UPI, AWS, Zomato..."
-              className="w-full pl-14 pr-4 py-4 bg-slate-50/30 dark:bg-zinc-900/30 border border-slate-100 dark:border-zinc-800 rounded-2xl text-sm font-black placeholder:text-slate-400 outline-none focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <button 
-              type="button"
-              onClick={toggleNeedsReview}
-              className={cn(
-                "absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 px-4 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all shadow-sm",
-                needsReview 
-                   ? "bg-amber-600 border-amber-500 text-white shadow-amber-600/20" 
-                   : "bg-white border-slate-100 text-slate-500 hover:border-slate-200"
-              )}
-            >
-              Needs review {needsReview && <X className="h-3 w-3" />}
-            </button>
-          </div>
+        <div className="relative min-w-[180px] flex-1 max-w-xs">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            aria-label="Search description"
+            placeholder="UPI, AWS, ZOMATO…"
+            className="h-9 pl-8 text-sm"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
 
-        {/* Channel Dropdown Placeholder */}
-        <div className="w-[200px]">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 ml-1">Sales Channel</p>
-          <div className="relative group">
-            <select className="w-full appearance-none pl-5 pr-12 py-4 bg-slate-50/30 dark:bg-zinc-900/30 border border-slate-100 dark:border-zinc-800 rounded-2xl text-sm font-black text-slate-700 dark:text-slate-300 outline-none cursor-pointer focus:border-indigo-600 transition-all">
-              <option>All Channels</option>
-            </select>
-            <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none group-focus-within:text-indigo-600 transition-colors" />
-          </div>
-        </div>
+        {/* Date range */}
+        <Input
+          type="date"
+          aria-label="From date"
+          className="h-9 w-[135px] text-sm"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+        />
+        <span className="text-xs text-muted-foreground">→</span>
+        <Input
+          type="date"
+          aria-label="To date"
+          className="h-9 w-[135px] text-sm"
+          value={endDate}
+          onChange={(e) => setEndDate(e.target.value)}
+        />
 
-        {/* Date Pickers */}
-        <div className="flex items-center gap-3">
-          <div className="w-[160px]">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 ml-1">Start Date</p>
-            <div className="relative group">
-              <input
-                type="date"
-                className="w-full pl-5 pr-4 py-4 bg-slate-50/30 dark:bg-zinc-900/30 border border-slate-100 dark:border-zinc-800 rounded-2xl text-sm font-black text-slate-700 outline-none cursor-pointer focus:border-indigo-600 transition-all"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </div>
-          </div>
-          <div className="w-[160px]">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 ml-1">End Date</p>
-            <div className="relative group">
-              <input
-                type="date"
-                className="w-full pl-5 pr-4 py-4 bg-slate-50/30 dark:bg-zinc-900/30 border border-slate-100 dark:border-zinc-800 rounded-2xl text-sm font-black text-slate-700 outline-none cursor-pointer focus:border-indigo-600 transition-all"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </div>
-          </div>
-        </div>
+        {/* Needs review toggle */}
+        <button
+          type="button"
+          onClick={toggleNeedsReview}
+          className={cn(
+            "inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors",
+            needsReview
+              ? "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
+              : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
+          )}
+        >
+          <span className={cn(
+            "h-1.5 w-1.5 rounded-full",
+            needsReview ? "bg-amber-500" : "bg-muted-foreground/40",
+          )} />
+          Needs review
+          {needsReview && <X className="h-3 w-3" />}
+        </button>
 
-        {/* Actions */}
-        <div className="flex items-center gap-3 pb-0.5">
-          <Button type="submit" className="h-[58px] px-10 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-600/20 transition-all active:scale-95">
-            Apply
+        <Button type="submit" size="sm" className="h-9">Apply</Button>
+
+        {hasFilters && (
+          <Button type="button" variant="ghost" size="sm" className="h-9 text-muted-foreground" onClick={clear}>
+            <X className="mr-1 h-3.5 w-3.5" />Clear
           </Button>
-          <Button type="button" variant="ghost" className="h-[58px] px-6 rounded-2xl font-black text-[10px] uppercase tracking-widest text-slate-400 hover:text-slate-600 hover:bg-slate-50" onClick={clear}>
-            Reset
-          </Button>
-        </div>
-      </form>
-    </div>
+        )}
+      </div>
+    </form>
   );
 }
 

@@ -1,12 +1,12 @@
 "use client";
 
 /**
- * @file TransactionTable.tsx — Main transactions list view.
+ * @file TransactionTable.tsx — Main transactions list view with filter bar + table.
  * @module components/transactions
  *
- * Reads filters from URL searchParams, drives `useTransactions` for data,
- * orchestrates the EditCategoryModal + delete confirmation. Handles three
- * data states: loading (skeleton), empty (CTA), populated (table).
+ * Reads filters from URL searchParams, drives useTransactions for data,
+ * and orchestrates EditCategoryModal + delete confirmation. Three states:
+ * loading (skeleton rows), empty (EmptyState), populated (table).
  *
  * @dependencies @/lib/hooks (useTransactions, useDeleteTransaction)
  * @related app/(app)/transactions/page.tsx
@@ -18,10 +18,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { TransactionFilters } from "@/components/transactions/TransactionFilters";
-import {
-  EditCategoryModal,
-  type CategoryOption,
-} from "@/components/transactions/EditCategoryModal";
+import { EditCategoryModal, type CategoryOption } from "@/components/transactions/EditCategoryModal";
 import { TransactionRow } from "@/components/transactions/TransactionRow";
 import {
   AlertDialog,
@@ -45,13 +42,63 @@ import {
 import { useDeleteTransaction, useTransactions } from "@/lib/hooks";
 import type { TransactionFilters as TFilters } from "@/lib/hooks";
 import type { Transaction } from "@/types/transaction";
-import { cn } from "@/lib/utils";
 
-interface TransactionTableProps {
-  categories: CategoryOption[];
+// ─── Skeleton ──────────────────────────────────────────────
+
+function SkeletonRows() {
+  return (
+    <>
+      {Array.from({ length: 8 }).map((_, i) => (
+        <TableRow key={i} className="animate-pulse">
+          <TableCell><div className="h-3.5 w-16 rounded bg-muted" /></TableCell>
+          <TableCell><div className="h-3.5 w-48 rounded bg-muted" /></TableCell>
+          <TableCell><div className="h-5 w-14 rounded-full bg-muted" /></TableCell>
+          <TableCell>
+            <div className="flex items-center gap-2">
+              <div className="h-3.5 w-28 rounded bg-muted" />
+              <div className="h-5 w-8 rounded bg-muted" />
+            </div>
+          </TableCell>
+          <TableCell><div className="ml-auto h-3.5 w-16 rounded bg-muted" /></TableCell>
+          <TableCell><div className="ml-auto h-3.5 w-16 rounded bg-muted" /></TableCell>
+          <TableCell><div className="ml-auto h-3.5 w-20 rounded bg-muted" /></TableCell>
+          <TableCell />
+        </TableRow>
+      ))}
+    </>
+  );
 }
 
-export function TransactionTable({ categories }: TransactionTableProps) {
+// ─── Table shell ───────────────────────────────────────────
+
+function TableShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-muted/40 hover:bg-muted/40">
+            {["Date", "Description", "Channel", "Category"].map((h) => (
+              <TableHead key={h} className="py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                {h}
+              </TableHead>
+            ))}
+            {["Debit", "Credit", "Balance"].map((h) => (
+              <TableHead key={h} className="py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                {h}
+              </TableHead>
+            ))}
+            <TableHead className="w-[68px]" />
+          </TableRow>
+        </TableHeader>
+        <TableBody>{children}</TableBody>
+      </Table>
+    </div>
+  );
+}
+
+// ─── Component ─────────────────────────────────────────────
+
+export function TransactionTable({ categories }: { categories: CategoryOption[] }) {
   const searchParams = useSearchParams();
   const filters: TFilters = {
     start_date: searchParams.get("start_date") ?? undefined,
@@ -70,13 +117,8 @@ export function TransactionTable({ categories }: TransactionTableProps) {
     if (!deleteTarget) return;
     const target = deleteTarget;
     deleteMutation.mutate(target.id, {
-      onSuccess: () => {
-        toast.success("Transaction deleted");
-        setDeleteTarget(null);
-      },
-      onError: (err) => {
-        toast.error(err.message);
-      },
+      onSuccess: () => { toast.success("Transaction deleted"); setDeleteTarget(null); },
+      onError: (err) => { toast.error(err.message); },
     });
   }
 
@@ -101,33 +143,30 @@ export function TransactionTable({ categories }: TransactionTableProps) {
       </div>
 
       {isError && (
-        <div className="mx-6 rounded-2xl border border-destructive/20 bg-destructive/5 p-4 text-xs font-bold text-destructive">
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           Could not load transactions: {error?.message ?? "unknown error"}
         </div>
       )}
 
-      <div className="px-2">
-        <TableShell>
-          {isLoading ? (
-            [...Array(8)].map((_, i) => (
-              <TableRow key={i}>
-                <TableCell colSpan={9} className="py-8">
-                  <div className="h-4 w-full animate-pulse rounded-full bg-slate-100 dark:bg-zinc-900" />
-                </TableCell>
-              </TableRow>
-            ))
-          ) : !data || data.transactions.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={9} className="h-64">
-                <EmptyState
-                  icon={ReceiptText}
-                  title="No transactions match these filters"
-                  description="Adjust the filters above, or upload a bank statement to get started."
-                />
-              </TableCell>
-            </TableRow>
-          ) : (
-            data.transactions.map((t) => (
+      {isLoading ? (
+        <TableShell><SkeletonRows /></TableShell>
+      ) : !data || data.transactions.length === 0 ? (
+        <EmptyState
+          icon={ReceiptText}
+          title="No transactions match these filters"
+          description="Adjust the filters above, or upload a bank statement to get started."
+        />
+      ) : (
+        <>
+          <p className="text-xs text-muted-foreground">
+            Showing{" "}
+            <span className="font-medium text-foreground">{data.transactions.length}</span>
+            {" "}of{" "}
+            <span className="font-medium text-foreground">{data.total_count}</span>
+            {" "}transactions
+          </p>
+          <TableShell>
+            {data.transactions.map((t) => (
               <TransactionRow
                 key={t.id}
                 transaction={t}
@@ -136,17 +175,17 @@ export function TransactionTable({ categories }: TransactionTableProps) {
               />
             ))
           )}
-        </TableShell>
-      </div>
+          </TableShell>
+        </div>
 
       {/* Pagination Placeholder */}
       <div className="flex items-center justify-between px-6 pb-6">
         <div className="flex items-center gap-2">
-           <select className="bg-transparent text-xs font-bold text-slate-500 outline-none cursor-pointer">
-              <option>10 per page</option>
-              <option>20 per page</option>
-              <option>50 per page</option>
-           </select>
+          <select className="bg-transparent text-xs font-bold text-slate-500 outline-none cursor-pointer">
+            <option>10 per page</option>
+            <option>20 per page</option>
+            <option>50 per page</option>
+          </select>
         </div>
         <div className="flex items-center gap-1">
           <button className="p-2 text-slate-300 hover:text-slate-600 transition-colors"><ChevronLeft className="h-4 w-4" /></button>
@@ -166,11 +205,8 @@ export function TransactionTable({ categories }: TransactionTableProps) {
         onOpenChange={(open) => !open && setEditTarget(null)}
       />
 
-      <AlertDialog
-        open={deleteTarget !== null}
-        onOpenChange={(open) => !open && setDeleteTarget(null)}
-      >
-        <AlertDialogContent className="rounded-[32px] border-slate-100">
+      <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="text-xl font-black">Delete this transaction?</AlertDialogTitle>
             <AlertDialogDescription className="text-sm font-medium text-slate-500">
@@ -180,10 +216,8 @@ export function TransactionTable({ categories }: TransactionTableProps) {
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2">
-            <AlertDialogCancel className="rounded-2xl border-slate-100 font-bold" disabled={deleteMutation.isPending}>
-              Cancel
-            </AlertDialogCancel>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               disabled={deleteMutation.isPending}
@@ -197,27 +231,3 @@ export function TransactionTable({ categories }: TransactionTableProps) {
     </div>
   );
 }
-
-function TableShell({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="w-full">
-      <Table>
-        <TableHeader>
-          <TableRow className="border-none hover:bg-transparent">
-            <TableHead className="w-[140px] text-[10px] font-black uppercase tracking-widest text-slate-400 h-16 pl-6">Transaction Date</TableHead>
-            <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 h-16">Description</TableHead>
-            <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 h-16">Sales Channel</TableHead>
-            <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 h-16">Categorization</TableHead>
-            <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 h-16 text-right pr-8">Debit</TableHead>
-            <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 h-16 text-right pr-8">Credit</TableHead>
-            <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 h-16 text-right pr-8">Balance</TableHead>
-            <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 h-16">AI Status</TableHead>
-            <TableHead className="w-[120px] text-[10px] font-black uppercase tracking-widest text-slate-400 h-16 text-right pr-6">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody className="border-t border-slate-50 dark:border-zinc-900/50">{children}</TableBody>
-      </Table>
-    </div>
-  );
-}
-

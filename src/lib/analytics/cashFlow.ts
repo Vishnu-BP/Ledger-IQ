@@ -10,7 +10,7 @@
  * @related components/dashboard/CashFlowChart.tsx
  */
 
-import { eq, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 import { db } from "@/db/client";
 import { transactions } from "@/db/schema";
