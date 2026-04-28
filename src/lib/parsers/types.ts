@@ -52,3 +52,28 @@ export type ParseErrorCode =
   | "no_transactions"
   | "invalid_date"
   | "invalid_row";
+
+// ─── Settlement types ───────────────────────────────────────────
+
+export interface ParsedSettlementLine {
+  order_id: string | null;
+  transaction_type: string | null;
+  amount_type: string | null;
+  amount_description: string | null;
+  /** Signed numeric string: positive = credit to seller, negative = debit. */
+  amount: string | null;
+  posted_date: string | null; // ISO YYYY-MM-DD
+  sku: string | null;
+  quantity_purchased: number | null;
+}
+
+export interface ParsedSettlement {
+  settlement_id_external: string;
+  period_start: string | null;
+  period_end: string | null;
+  deposit_date: string | null;
+  /** Absolute net disbursement amount. */
+  total_amount: string;
+  currency: string;
+  lines: ParsedSettlementLine[];
+}

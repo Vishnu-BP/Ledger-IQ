@@ -9,10 +9,14 @@ export { BULK_MODEL, EDGE_CASE_MODEL, FALLBACK_MODEL } from "./models";
 export {
   buildBulkCategorizationPrompt,
   buildEdgeCasePrompt,
+  buildAnomalyExplanationPrompt,
+  buildReconciliationPrompt,
   type BusinessContext,
   type BulkTransaction,
   type EdgeCaseTransaction,
   type SimilarPastTransaction,
+  type AnomalyContext,
+  type ReconciliationContext,
 } from "./prompts";
 export { parseJsonResponse } from "./parseResponse";
 export { withRetry, type RetryOptions } from "./retry";

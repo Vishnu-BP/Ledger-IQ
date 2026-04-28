@@ -3,11 +3,9 @@
  * @module app/api/upload
  *
  * Multipart form handler. Validates auth + business existence + file
- * shape (size, extension, type slug), then delegates to
- * `uploadStatement` for the actual ingestion work.
- *
- * Currently only `bank_statement` is wired. Marketplace types return 501
- * with a friendly message; stage 4.3 wires their parsers.
+ * shape (size, extension, type slug), then delegates to `uploadStatement`
+ * (bank_statement) or `uploadSettlement` (amazon_settlement). After each
+ * settlement upload, reconcile() is kicked off fire-and-forget.
  *
  * @dependencies next/server, @/lib/auth, @/lib/uploads, @/lib/storage, @/lib/logger
  * @related components/upload/*, lib/hooks/useUpload.ts
@@ -21,6 +19,8 @@ import { createLogger } from "@/lib/logger";
 import { ParseError } from "@/lib/parsers";
 import { StorageError } from "@/lib/storage";
 import { DuplicateUploadError, uploadStatement } from "@/lib/uploads";
+import { uploadSettlement } from "@/lib/uploads/uploadSettlement";
+import { reconcile } from "@/lib/reconciliation";
 
 const log = createLogger("API");
 
@@ -83,23 +83,51 @@ export async function POST(request: NextRequest) {
     return errorResponse(400, "invalid_type", "Unknown upload type");
   }
 
-  // Marketplace settlements arrive in stage 4.3.
-  if (typeParse.data !== "bank_statement") {
-    return errorResponse(
-      501,
-      "not_implemented",
-      "Marketplace settlement upload arrives in Layer 4",
-    );
-  }
-
   try {
+    const uploadType = typeParse.data;
+
+    // ─── Amazon settlement ────────────────────────────────
+    if (uploadType === "amazon_settlement") {
+      const created = await uploadSettlement({
+        businessId: result.business.id,
+        file,
+        marketplace: "amazon",
+      });
+
+      // Fire-and-forget reconciliation (Stage 4.4 wires the full engine;
+      // this import will be a no-op stub until then).
+      reconcileAsync(result.business.id, created.id);
+
+      return NextResponse.json({
+        id: created.id,
+        type: uploadType,
+        status: "uploaded",
+        filename: file.name,
+        settlement_id: created.settlement_id_external,
+        total_amount: created.total_amount,
+        settlement_lines_count: created.settlement_lines_count,
+        period_start: created.period_start,
+        period_end: created.period_end,
+      });
+    }
+
+    // ─── Flipkart settlement (stub — Layer 4.3 partial) ──
+    if (uploadType === "flipkart_settlement") {
+      return errorResponse(
+        501,
+        "not_implemented",
+        "Flipkart settlement upload is coming soon",
+      );
+    }
+
+    // ─── Bank statement ───────────────────────────────────
     const created = await uploadStatement({
       businessId: result.business.id,
       file,
     });
     return NextResponse.json({
       id: created.id,
-      type: typeParse.data,
+      type: uploadType,
       status: created.status,
       filename: created.filename,
       bank: created.bank,
@@ -112,8 +140,6 @@ export async function POST(request: NextRequest) {
       return errorResponse(409, "duplicate", err.message);
     }
     if (err instanceof ParseError) {
-      // File reached Storage and DB, but contents couldn't be parsed.
-      // statements.status is now 'error' with parse_error populated.
       return errorResponse(422, "parse_error", err.message);
     }
     if (err instanceof StorageError) {
@@ -123,4 +149,14 @@ export async function POST(request: NextRequest) {
     log.error("Unexpected upload error", { error: String(err) });
     return errorResponse(500, "server_error", "Something went wrong");
   }
+}
+
+function reconcileAsync(businessId: string, settlementId: string): void {
+  reconcile(businessId, settlementId).catch((err) => {
+    log.error("Background reconciliation failed", {
+      business: businessId.slice(0, 8),
+      settlement: settlementId.slice(0, 8),
+      err: String(err),
+    });
+  });
 }

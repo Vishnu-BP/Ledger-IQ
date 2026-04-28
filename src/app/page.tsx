@@ -1,3 +1,19 @@
+/**
+ * @file page.tsx — / — LedgerIQ public landing page.
+ * @module app
+ *
+ * Layer 5.7: polished hero + 3 feature cards + CTA.
+ * Kept as a single RSC file (no sub-components) since the page is compact.
+ */
+
+import {
+  AlertTriangle,
+  ArrowRight,
+  BookOpen,
+  FileBarChart2,
+  ShoppingBag,
+  Zap,
+} from "lucide-react";
 import Link from "next/link";
 import { ArrowRight, BarChart3, ShieldCheck, Zap } from "lucide-react";
 
@@ -5,112 +21,133 @@ import { Button } from "@/components/ui/button";
 
 export default function HomePage() {
   return (
-    <div className="relative min-h-screen bg-white dark:bg-zinc-950 text-slate-900 dark:text-slate-50">
-      {/* Navbar */}
-      <nav className="sticky top-0 z-50 w-full border-b border-slate-100 dark:border-zinc-800 bg-white/70 dark:bg-zinc-950/70 backdrop-blur-md">
-        <div className="container flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-indigo">
-              <BarChart3 className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-xl font-medium tracking-tight">LedgerIQ</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" asChild className="hidden sm:inline-flex font-medium">
-              <Link href="/auth/login">Log in</Link>
-            </Button>
-            <Button asChild className="bg-brand-indigo hover:bg-brand-indigo/90 text-white font-medium">
-              <Link href="/auth/signup">Get started</Link>
-            </Button>
-          </div>
+    <main className="flex min-h-screen flex-col">
+      {/* ── Nav ──────────────────────────────────────────── */}
+      <nav className="flex items-center justify-between px-6 py-4 border-b">
+        <span className="text-lg font-bold tracking-tight">LedgerIQ</span>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/auth/login"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Sign in
+          </Link>
+          <Link
+            href="/auth/signup"
+            className="rounded-md bg-primary px-4 py-1.5 text-sm text-primary-foreground transition hover:opacity-90"
+          >
+            Get started
+          </Link>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <main className="relative">
-        {/* Background Gradient Bloom */}
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_70%_60%_at_50%_0%,rgba(79,70,229,0.07),transparent)] dark:bg-[radial-gradient(ellipse_70%_60%_at_50%_0%,rgba(79,70,229,0.15),transparent)]" />
-
-        <div className="container flex flex-col items-center justify-center px-4 py-24 text-center">
-          {/* Pill Badge */}
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-brand-indigo/20 bg-brand-indigo/5 px-3 py-1 text-xs font-medium text-brand-indigo">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-indigo opacity-75"></span>
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-indigo"></span>
-            </span>
-            Now in public beta
-          </div>
-
-          <h1 className="max-w-3xl text-5xl font-medium tracking-tight sm:text-6xl">
-            Automate your business{" "}
-            <span className="text-brand-indigo">finances</span> with LedgerIQ
-          </h1>
-
-          <p className="mt-6 max-w-xl text-lg text-slate-500 dark:text-slate-400">
-            The AI-powered financial autopilot for Indian SMBs. Focus on growth, while we handle your bookkeeping, compliance, and taxes.
-          </p>
-
-          <div className="mt-10 flex flex-col sm:flex-row gap-4">
-            <Button size="lg" asChild className="bg-brand-indigo hover:bg-brand-indigo/90 text-white px-8 font-medium">
-              <Link href="/auth/signup">
-                Get started free <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-            <Button size="lg" variant="outline" className="border-slate-200 dark:border-zinc-800 font-medium">
-              View features
-            </Button>
-          </div>
-
-          {/* Stats Section */}
-          <div className="mt-24 grid w-full max-w-4xl grid-cols-1 gap-8 border-t border-slate-100 dark:border-zinc-800 pt-16 sm:grid-cols-3">
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-3xl font-medium">500+</span>
-              <span className="text-sm text-slate-500 dark:text-slate-400">Businesses onboarded</span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-3xl font-medium">₹10Cr+</span>
-              <span className="text-sm text-slate-500 dark:text-slate-400">Transactions processed</span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-3xl font-medium">99.9%</span>
-              <span className="text-sm text-slate-500 dark:text-slate-400">Platform uptime</span>
-            </div>
-          </div>
+      {/* ── Hero ─────────────────────────────────────────── */}
+      <section className="flex flex-1 flex-col items-center justify-center px-6 py-24 text-center">
+        <div className="inline-flex items-center gap-2 rounded-full border bg-muted/50 px-3 py-1 text-xs text-muted-foreground mb-6">
+          <Zap className="h-3 w-3 text-yellow-500" />
+          AI-powered · Built for Indian SMBs
         </div>
-      </main>
 
-      {/* Feature Section Placeholder to show spacing rhythm */}
-      <section className="container px-4 py-24">
-        <div className="grid gap-12 sm:grid-cols-3">
-          <div className="space-y-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-50 dark:bg-zinc-900">
-              <Zap className="h-5 w-5 text-brand-indigo" />
-            </div>
-            <h3 className="text-lg font-medium">Instant Integration</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-              Connect your bank accounts and GSTIN in minutes with automated syncing.
-            </p>
-          </div>
-          <div className="space-y-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-50 dark:bg-zinc-900">
-              <ShieldCheck className="h-5 w-5 text-brand-indigo" />
-            </div>
-            <h3 className="text-lg font-medium">Compliant by Design</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-              Always up to date with the latest GST and income tax regulations.
-            </p>
-          </div>
-          <div className="space-y-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-50 dark:bg-zinc-900">
-              <BarChart3 className="h-5 w-5 text-brand-indigo" />
-            </div>
-            <h3 className="text-lg font-medium">Real-time Insights</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-              Powerful dashboard with cashflow forecasting and expense analytics.
-            </p>
+        <h1 className="max-w-2xl text-4xl font-bold tracking-tight sm:text-5xl">
+          Your bank statement,{" "}
+          <span className="text-primary">understood in minutes</span>
+        </h1>
+
+        <p className="mt-6 max-w-xl text-lg text-muted-foreground">
+          Upload a CSV → AI categorizes every transaction → GST liability computed
+          automatically → Amazon marketplace gaps surfaced instantly.
+        </p>
+
+        <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row">
+          <Link
+            href="/auth/signup"
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow transition hover:opacity-90"
+          >
+            Start free
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+          <Link
+            href="/auth/login"
+            className="rounded-md border px-6 py-3 text-sm font-medium transition hover:bg-muted"
+          >
+            Sign in
+          </Link>
+        </div>
+      </section>
+
+      {/* ── Feature cards ────────────────────────────────── */}
+      <section className="border-t bg-muted/30 px-6 py-16">
+        <div className="mx-auto max-w-4xl">
+          <h2 className="mb-10 text-center text-2xl font-bold tracking-tight">
+            Everything an Indian SMB needs
+          </h2>
+          <div className="grid gap-6 sm:grid-cols-3">
+            <FeatureCard
+              icon={BookOpen}
+              title="AI Categorisation"
+              description="Two-tier LLM pipeline: Llama for bulk, Claude for edge cases. Regex rules pre-categorize Indian payment rails instantly."
+            />
+            <FeatureCard
+              icon={FileBarChart2}
+              title="GST Compliance"
+              description="GSTR-3B pre-filled from your transactions. Outward tax, eligible ITC, blocked ITC — copy values straight to the GST portal."
+            />
+            <FeatureCard
+              icon={ShoppingBag}
+              title="Marketplace Reconciliation"
+              description="Upload your Amazon settlement report. LedgerIQ spots the gap between what Amazon says they paid and what hit your bank."
+            />
           </div>
         </div>
       </section>
+
+      {/* ── Anomaly callout ──────────────────────────────── */}
+      <section className="border-t px-6 py-16">
+        <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+            <AlertTriangle className="h-6 w-6 text-destructive" />
+          </div>
+          <h3 className="text-xl font-bold">
+            &ldquo;Amazon owes you ₹960 across 6 disputed orders&rdquo;
+          </h3>
+          <p className="text-muted-foreground">
+            AI anomaly detection catches duplicates, missing recurring payments,
+            spend spikes, and marketplace discrepancies — before your CA does.
+          </p>
+          <Link
+            href="/auth/signup"
+            className="mt-2 inline-flex items-center gap-2 rounded-md bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+          >
+            Try it free
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </section>
+
+      {/* ── Footer ───────────────────────────────────────── */}
+      <footer className="border-t px-6 py-6 text-center text-xs text-muted-foreground">
+        LedgerIQ — AI financial autopilot for Indian small businesses
+      </footer>
+    </main>
+  );
+}
+
+function FeatureCard({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="rounded-xl border bg-card p-6 space-y-3">
+      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+        <Icon className="h-5 w-5 text-primary" />
+      </div>
+      <h3 className="font-semibold">{title}</h3>
+      <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
     </div>
   );
 }

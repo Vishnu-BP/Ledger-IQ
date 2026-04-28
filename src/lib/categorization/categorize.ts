@@ -28,6 +28,7 @@ import {
   statements,
   transactions,
 } from "@/db/schema";
+import { runAllDetectors } from "@/lib/anomalies";
 import { mapGstFields } from "@/lib/gst";
 import { createLogger } from "@/lib/logger";
 import {
@@ -143,6 +144,11 @@ export async function categorizeTransactions(
 
     // ─── State: → complete ─────────────────────────────────
     await markComplete(statementId, businessId);
+
+    // Fire-and-forget anomaly detection after categorization finishes.
+    runAllDetectors(businessId).catch((err) => {
+      log.warn("Background anomaly detection failed", { err: String(err) });
+    });
 
     log.info("Categorization complete", {
       statement: statementId.slice(0, 8),
