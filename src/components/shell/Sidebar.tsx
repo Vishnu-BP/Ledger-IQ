@@ -50,7 +50,7 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden lg:flex h-screen w-[400px] shrink-0 flex-col bg-[#030113] text-white border-r border-white/5 shadow-2xl overflow-hidden">
+    <aside className="hidden lg:flex h-screen w-[420px] shrink-0 flex-col bg-[#030113] text-white border-r border-white/5 shadow-2xl overflow-hidden">
       {/* Logo Header */}
       <div className="px-6 py-8">
         <Link

@@ -1,18 +1,5 @@
 "use client";
 
-/**
- * @file CashFlowChart.tsx — 90-day rolling cash flow area chart.
- * @module components/dashboard
- *
- * Recharts AreaChart with two stacked areas: inflow (emerald) and outflow
- * (destructive red). Data is serialized by the RSC and passed as a prop so
- * the component itself has no async work. X-axis shows every 2nd week label
- * to avoid crowding. Y-axis formatted as compact INR (₹1.2L).
- *
- * @dependencies recharts
- * @related app/(app)/dashboard/page.tsx, lib/analytics/cashFlow.ts
- */
-
 import {
   Area,
   AreaChart,
@@ -23,95 +10,81 @@ import {
   YAxis,
 } from "recharts";
 
-import type { CashFlowDay } from "@/lib/analytics";
-
 interface CashFlowChartProps {
-  data: CashFlowDay[];
+  data: any[];
 }
 
-function compactINR(value: number): string {
-  if (value >= 1_00_000) return `₹${(value / 1_00_000).toFixed(1)}L`;
-  if (value >= 1_000) return `₹${(value / 1_000).toFixed(0)}K`;
-  return `₹${value.toFixed(0)}`;
-}
-
-function fmtLabel(dateStr: string): string {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
-}
-
-export function CashFlowChart({ data }: CashFlowChartProps) {
-  if (!data || data.length === 0) {
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
     return (
-      <div className="flex h-[220px] items-center justify-center text-sm text-muted-foreground">
-        No transaction data yet
+      <div className="bg-white dark:bg-zinc-900 p-4 border border-slate-100 dark:border-zinc-800 shadow-2xl rounded-2xl animate-in fade-in zoom-in duration-200">
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{label}, 2026</p>
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between gap-8">
+            <div className="flex items-center gap-2">
+              <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Inflow</span>
+            </div>
+            <span className="text-xs font-black text-slate-900 dark:text-white">₹{payload[0].value.toLocaleString()}</span>
+          </div>
+          <div className="flex items-center justify-between gap-8">
+            <div className="flex items-center gap-2">
+              <div className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Outflow</span>
+            </div>
+            <span className="text-xs font-black text-slate-900 dark:text-white">₹{payload[1].value.toLocaleString()}</span>
+          </div>
+        </div>
       </div>
     );
   }
+  return null;
+};
 
-  // Show every ~14th label to avoid crowding on 90-day view.
-  const tickIndices = new Set(
-    data
-      .map((_, i) => i)
-      .filter((i) => i % 14 === 0 || i === data.length - 1),
-  );
-
+export function CashFlowChart({ data }: CashFlowChartProps) {
   return (
-    <ResponsiveContainer width="100%" height={220}>
-      <AreaChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+      <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
         <defs>
           <linearGradient id="inflow" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#059669" stopOpacity={0.25} />
-            <stop offset="95%" stopColor="#059669" stopOpacity={0} />
+            <stop offset="5%" stopColor="#10b981" stopOpacity={0.1} />
+            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
           </linearGradient>
           <linearGradient id="outflow" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.25} />
+            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.1} />
             <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-        <XAxis
-          dataKey="date"
-          tickLine={false}
-          axisLine={false}
-          tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-          tickFormatter={(v, i) => (tickIndices.has(i) ? fmtLabel(v) : "")}
+        <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#f1f5f9" />
+        <XAxis 
+          dataKey="date" 
+          axisLine={false} 
+          tickLine={false} 
+          tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
+          dy={10}
         />
-        <YAxis
-          tickLine={false}
-          axisLine={false}
-          tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-          tickFormatter={compactINR}
-          width={52}
+        <YAxis 
+          axisLine={false} 
+          tickLine={false} 
+          tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
+          tickFormatter={(v) => `₹${v/1000}k`}
         />
-        <Tooltip
-          formatter={(value, name) => [
-            compactINR(Number(value ?? 0)),
-            name === "inflow" ? "Inflow" : "Outflow",
-          ]}
-          labelFormatter={(label) => fmtLabel(String(label ?? ""))}
-          contentStyle={{
-            fontSize: 12,
-            borderRadius: 8,
-            border: "1px solid hsl(var(--border))",
-            backgroundColor: "hsl(var(--background))",
-          }}
-        />
+        <Tooltip content={<CustomTooltip />} />
         <Area
           type="monotone"
           dataKey="inflow"
-          stroke="#059669"
-          strokeWidth={1.5}
+          stroke="#10b981"
+          strokeWidth={3}
+          fillOpacity={1}
           fill="url(#inflow)"
-          dot={false}
         />
         <Area
           type="monotone"
           dataKey="outflow"
           stroke="#ef4444"
-          strokeWidth={1.5}
+          strokeWidth={3}
+          fillOpacity={1}
           fill="url(#outflow)"
-          dot={false}
         />
       </AreaChart>
     </ResponsiveContainer>

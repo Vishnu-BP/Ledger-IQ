@@ -1,92 +1,65 @@
 "use client";
 
-/**
- * @file ChannelSplitDonut.tsx — Channel split donut chart.
- * @module components/dashboard
- *
- * Recharts PieChart with innerRadius to form a donut. Shows percentage of
- * total inflows by channel. Legend rendered as a simple list on the right
- * so it's readable on small screens.
- *
- * @dependencies recharts
- * @related app/(app)/dashboard/page.tsx, lib/analytics/channelSplit.ts
- */
-
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
-import type { ChannelSlice } from "@/lib/analytics";
-import { formatINR } from "@/lib/utils";
-
-interface ChannelSplitDonutProps {
-  data: ChannelSlice[];
+interface ChannelSlice {
+  label: string;
+  value: number;
+  pct: number;
+  amount: string;
+  color: string;
 }
 
-const COLORS = [
-  "#059669", // emerald-600
-  "#2563eb", // blue-600
-  "#7c3aed", // violet-600
-  "#d97706", // amber-600
-  "#dc2626", // red-600
-  "#0891b2", // cyan-600
-  "#65a30d", // lime-600
-  "#db2777", // pink-600
-  "#ea580c", // orange-600
-  "#4f46e5", // indigo-600
+const dummyData: ChannelSlice[] = [
+  { label: "Rent & Office", value: 45, pct: 45, amount: "₹4,25,000", color: "#6366f1" },
+  { label: "Utilities", value: 25, pct: 25, amount: "₹2,35,000", color: "#3b82f6" },
+  { label: "Travel", value: 15, pct: 15, amount: "₹1,40,000", color: "#f97316" },
+  { label: "GST & Tax", value: 10, pct: 10, amount: "₹95,000", color: "#ef4444" },
+  { label: "Others", value: 5, pct: 5, amount: "₹46,000", color: "#10b981" },
 ];
 
-export function ChannelSplitDonut({ data }: ChannelSplitDonutProps) {
-  if (!data || data.length === 0) {
-    return (
-      <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
-        No inflow data yet
-      </div>
-    );
-  }
+export function ChannelSplitDonut({ data }: { data?: any[] }) {
+  const chartData = dummyData;
 
   return (
-    <div className="flex items-center gap-4">
-      <div className="shrink-0">
-        <ResponsiveContainer width={160} height={160}>
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-8 h-full">
+      <div className="relative shrink-0">
+        <ResponsiveContainer width={180} height={180} minWidth={0}>
           <PieChart>
             <Pie
-              data={data}
-              dataKey="total"
+              data={chartData}
+              dataKey="value"
               nameKey="label"
-              innerRadius={45}
-              outerRadius={75}
-              strokeWidth={1}
-              stroke="hsl(var(--background))"
+              innerRadius={55}
+              outerRadius={85}
+              strokeWidth={0}
+              paddingAngle={2}
             >
-              {data.map((_, i) => (
-                <Cell key={i} fill={COLORS[i % COLORS.length]} />
+              {chartData.map((entry, i) => (
+                <Cell key={i} fill={entry.color} />
               ))}
             </Pie>
-            <Tooltip
-              formatter={(value) => [formatINR(String(value ?? "0")), ""]}
-              contentStyle={{
-                fontSize: 12,
-                borderRadius: 8,
-                border: "1px solid hsl(var(--border))",
-                backgroundColor: "hsl(var(--background))",
-              }}
+            <Tooltip 
+              contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.1)' }}
             />
           </PieChart>
         </ResponsiveContainer>
       </div>
-      <ul className="flex-1 space-y-1.5 text-xs">
-        {data.map((s, i) => (
-          <li key={s.channel} className="flex items-center justify-between gap-2">
-            <span className="flex items-center gap-1.5">
-              <span
-                className="inline-block h-2 w-2 shrink-0 rounded-full"
-                style={{ background: COLORS[i % COLORS.length] }}
-              />
-              <span className="truncate text-muted-foreground">{s.label}</span>
-            </span>
-            <span className="font-medium tabular-nums">{s.pct}%</span>
-          </li>
+      
+      <div className="flex-1 w-full space-y-4">
+        {chartData.map((s) => (
+          <div key={s.label} className="flex items-center justify-between group">
+            <div className="flex items-center gap-3">
+              <div className="h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} />
+              <span className="text-sm font-bold text-slate-500 dark:text-slate-400">{s.label}</span>
+            </div>
+            <div className="flex items-center gap-6">
+              <span className="text-sm font-bold text-slate-900 dark:text-white">{s.pct}%</span>
+              <span className="text-sm font-black text-slate-900 dark:text-white w-20 text-right">{s.amount}</span>
+            </div>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
 }

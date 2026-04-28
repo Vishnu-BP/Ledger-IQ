@@ -37,7 +37,7 @@ export async function getCashFlow(
       INTERVAL '1 day'
     ) AS d(day)
     LEFT JOIN ${transactions} t
-      ON t.transaction_date = d.day::date::text
+      ON t.transaction_date = d.day::date
      AND t.business_id = ${businessId}
     GROUP BY d.day
     ORDER BY d.day ASC

@@ -13,9 +13,10 @@ import {
   FileBarChart2,
   ShoppingBag,
   Zap,
+  BarChart3,
+  ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
-import { ArrowRight, BarChart3, ShieldCheck, Zap } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 

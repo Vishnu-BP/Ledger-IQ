@@ -73,48 +73,53 @@ export function FileDropzone({ onFile, disabled }: FileDropzoneProps) {
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
       className={cn(
-        "flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed p-10 text-center transition",
+        "relative flex flex-col items-center justify-center gap-6 rounded-[32px] border-2 border-dashed p-16 text-center transition-all",
         dragOver && !disabled
-          ? "border-primary bg-primary/5"
-          : "border-muted-foreground/25 bg-card/50",
+          ? "border-indigo-600 bg-indigo-50/50"
+          : "border-slate-100 dark:border-zinc-800 bg-slate-50/30 dark:bg-zinc-900/30",
         disabled && "cursor-not-allowed opacity-60",
       )}
     >
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-        {dragOver ? (
-          <FileSpreadsheet className="h-6 w-6 text-primary" />
-        ) : (
-          <Upload className="h-6 w-6 text-muted-foreground" />
-        )}
+      <div className="relative">
+        <div className="h-20 w-20 rounded-full bg-indigo-600/10 flex items-center justify-center animate-pulse" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="h-12 w-12 rounded-full bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-600/30">
+            <Upload className="h-6 w-6 text-white" />
+          </div>
+        </div>
       </div>
 
-      <div className="space-y-1">
-        <p className="text-sm font-medium">
-          {dragOver ? "Drop to upload" : "Drag and drop a CSV here"}
+      <div className="space-y-2">
+        <p className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
+          {dragOver ? "Drop to upload" : "Drag and drop your CSV file here"}
         </p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">
           .csv files up to 10 MB
         </p>
       </div>
 
-      <input
-        ref={inputRef}
-        id={inputId}
-        type="file"
-        accept=".csv,text/csv"
-        onChange={handleChange}
-        disabled={disabled}
-        className="sr-only"
-      />
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        disabled={disabled}
-        onClick={() => inputRef.current?.click()}
-      >
-        Choose file
-      </Button>
+      <div className="flex flex-col items-center gap-4">
+        <input
+          ref={inputRef}
+          id={inputId}
+          type="file"
+          accept=".csv,text/csv"
+          onChange={handleChange}
+          disabled={disabled}
+          className="sr-only"
+        />
+        <Button
+          type="button"
+          disabled={disabled}
+          onClick={() => inputRef.current?.click()}
+          className="px-10 h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-600/20 transition-all hover:scale-[1.02]"
+        >
+          Choose file
+        </Button>
+        <p className="text-[11px] font-black text-slate-300 uppercase tracking-widest">or drag and drop</p>
+      </div>
     </div>
   );
 }
+
+

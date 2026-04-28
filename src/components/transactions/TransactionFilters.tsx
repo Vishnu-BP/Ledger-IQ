@@ -13,13 +13,12 @@
  * @related components/transactions/TransactionTable.tsx
  */
 
-import { Search, X } from "lucide-react";
+import { Search, X, Calendar as CalendarIcon, ChevronDown } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
 export function TransactionFilters() {
@@ -28,13 +27,10 @@ export function TransactionFilters() {
   const searchParams = useSearchParams();
 
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
-  const [startDate, setStartDate] = useState(
-    searchParams.get("start_date") ?? "",
-  );
+  const [startDate, setStartDate] = useState(searchParams.get("start_date") ?? "");
   const [endDate, setEndDate] = useState(searchParams.get("end_date") ?? "");
   const needsReview = searchParams.get("needs_review") === "1";
 
-  // Keep local state in sync if URL changes externally (e.g. browser back).
   useEffect(() => {
     setSearch(searchParams.get("search") ?? "");
     setStartDate(searchParams.get("start_date") ?? "");
@@ -66,85 +62,84 @@ export function TransactionFilters() {
     router.replace(pathname);
   }
 
-  const hasFilters = !!(search || startDate || endDate || needsReview);
-
   return (
-    <form
-      onSubmit={apply}
-      className="grid gap-3 rounded-lg border bg-card p-4 sm:grid-cols-[1fr_auto_auto_auto]"
-    >
-      <div className="space-y-1.5">
-        <Label htmlFor="filter-search" className="text-xs">
-          Search description
-        </Label>
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            id="filter-search"
-            placeholder="UPI, AWS, ZOMATO, …"
-            className="pl-8"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+    <div className="space-y-4">
+      <form onSubmit={apply} className="flex flex-wrap items-end gap-5 bg-white dark:bg-zinc-950 p-8 rounded-[40px] border border-slate-100 dark:border-zinc-800 shadow-sm">
+        {/* Search */}
+        <div className="flex-1 min-w-[320px]">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 ml-1">Search Analytics</p>
+          <div className="relative group">
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+            <input
+              type="text"
+              placeholder="Description, UPI, AWS, Zomato..."
+              className="w-full pl-14 pr-4 py-4 bg-slate-50/30 dark:bg-zinc-900/30 border border-slate-100 dark:border-zinc-800 rounded-2xl text-sm font-black placeholder:text-slate-400 outline-none focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <button 
+              type="button"
+              onClick={toggleNeedsReview}
+              className={cn(
+                "absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 px-4 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all shadow-sm",
+                needsReview 
+                   ? "bg-amber-600 border-amber-500 text-white shadow-amber-600/20" 
+                   : "bg-white border-slate-100 text-slate-500 hover:border-slate-200"
+              )}
+            >
+              Needs review {needsReview && <X className="h-3 w-3" />}
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="filter-start" className="text-xs">
-          From
-        </Label>
-        <Input
-          id="filter-start"
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-        />
-      </div>
+        {/* Channel Dropdown Placeholder */}
+        <div className="w-[200px]">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 ml-1">Sales Channel</p>
+          <div className="relative group">
+            <select className="w-full appearance-none pl-5 pr-12 py-4 bg-slate-50/30 dark:bg-zinc-900/30 border border-slate-100 dark:border-zinc-800 rounded-2xl text-sm font-black text-slate-700 dark:text-slate-300 outline-none cursor-pointer focus:border-indigo-600 transition-all">
+              <option>All Channels</option>
+            </select>
+            <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none group-focus-within:text-indigo-600 transition-colors" />
+          </div>
+        </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="filter-end" className="text-xs">
-          To
-        </Label>
-        <Input
-          id="filter-end"
-          type="date"
-          value={endDate}
-          onChange={(e) => setEndDate(e.target.value)}
-        />
-      </div>
+        {/* Date Pickers */}
+        <div className="flex items-center gap-3">
+          <div className="w-[160px]">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 ml-1">Start Date</p>
+            <div className="relative group">
+              <input
+                type="date"
+                className="w-full pl-5 pr-4 py-4 bg-slate-50/30 dark:bg-zinc-900/30 border border-slate-100 dark:border-zinc-800 rounded-2xl text-sm font-black text-slate-700 outline-none cursor-pointer focus:border-indigo-600 transition-all"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="w-[160px]">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 ml-1">End Date</p>
+            <div className="relative group">
+              <input
+                type="date"
+                className="w-full pl-5 pr-4 py-4 bg-slate-50/30 dark:bg-zinc-900/30 border border-slate-100 dark:border-zinc-800 rounded-2xl text-sm font-black text-slate-700 outline-none cursor-pointer focus:border-indigo-600 transition-all"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
 
-      <div className="flex items-end gap-2">
-        <Button type="submit" size="sm">
-          Apply
-        </Button>
-        {hasFilters && (
-          <Button type="button" variant="ghost" size="sm" onClick={clear}>
-            <X className="h-4 w-4" />
+        {/* Actions */}
+        <div className="flex items-center gap-3 pb-0.5">
+          <Button type="submit" className="h-[58px] px-10 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-600/20 transition-all active:scale-95">
+            Apply
           </Button>
-        )}
-      </div>
-
-      <div className="sm:col-span-4">
-        <button
-          type="button"
-          onClick={toggleNeedsReview}
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-            needsReview
-              ? "border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100"
-              : "border-border bg-background text-muted-foreground hover:bg-muted",
-          )}
-        >
-          <span
-            className={cn(
-              "h-1.5 w-1.5 rounded-full",
-              needsReview ? "bg-amber-500" : "bg-muted-foreground/40",
-            )}
-          />
-          Needs review
-          {needsReview && <X className="h-3 w-3" />}
-        </button>
-      </div>
-    </form>
+          <Button type="button" variant="ghost" className="h-[58px] px-6 rounded-2xl font-black text-[10px] uppercase tracking-widest text-slate-400 hover:text-slate-600 hover:bg-slate-50" onClick={clear}>
+            Reset
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 }
+
