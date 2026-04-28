@@ -21,7 +21,7 @@
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Mail, SendHorizontal } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -118,31 +118,44 @@ export function EmailOtpForm() {
 
   if (stage === "email") {
     return (
-      <form onSubmit={emailForm.handleSubmit(sendCode)} className="space-y-4">
+      <form onSubmit={emailForm.handleSubmit(sendCode)} className="space-y-5">
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="you@example.com"
-            autoComplete="email"
-            autoFocus
-            {...emailForm.register("email")}
-          />
+          <Label htmlFor="email" className="text-sm font-semibold text-slate-700">Email Address</Label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400">
+              <Mail className="h-5 w-5" />
+            </div>
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              autoComplete="email"
+              autoFocus
+              className="h-12 pl-12 border-slate-200 focus:ring-indigo-500 focus:border-indigo-500"
+              {...emailForm.register("email")}
+            />
+          </div>
           {emailForm.formState.errors.email && (
-            <p className="text-sm text-destructive">
+            <p className="text-sm font-medium text-red-500">
               {emailForm.formState.errors.email.message}
             </p>
           )}
         </div>
 
-        <Button type="submit" className="w-full" disabled={submitting}>
+        <Button 
+          type="submit" 
+          className="h-12 w-full bg-gradient-to-r from-indigo-600 to-indigo-700 font-semibold text-white shadow-lg shadow-indigo-600/20 transition-all hover:scale-[1.01] active:scale-[0.98]" 
+          disabled={submitting}
+        >
           {submitting ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending code…
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Sending code…
             </>
           ) : (
-            "Send me a code"
+            <>
+              Send me a code
+              <SendHorizontal className="ml-2 h-4 w-4" />
+            </>
           )}
         </Button>
       </form>

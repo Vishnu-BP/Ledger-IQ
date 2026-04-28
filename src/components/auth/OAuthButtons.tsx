@@ -67,26 +67,26 @@ export function OAuthButtons() {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="flex flex-col gap-3">
       <Button
         type="button"
         variant="outline"
-        className="w-full"
+        className="h-12 w-full border-slate-200 bg-white font-semibold text-slate-700 transition-all hover:bg-slate-50 hover:text-indigo-600 active:scale-[0.98]"
         disabled={loading !== null}
         onClick={() => signInWith("google")}
       >
-        <GoogleIcon className="mr-2 h-4 w-4" />
+        <GoogleIcon className="mr-3 h-5 w-5" />
         {loading === "google" ? "Connecting…" : "Continue with Google"}
       </Button>
 
       <Button
         type="button"
         variant="outline"
-        className="w-full"
+        className="h-12 w-full border-slate-200 bg-white font-semibold text-slate-700 transition-all hover:bg-slate-50 hover:text-indigo-600 active:scale-[0.98]"
         disabled={loading !== null}
         onClick={() => signInWith("github")}
       >
-        <Github className="mr-2 h-4 w-4" />
+        <Github className="mr-3 h-5 w-5" />
         {loading === "github" ? "Connecting…" : "Continue with GitHub"}
       </Button>
     </div>
