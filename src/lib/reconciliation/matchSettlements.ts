@@ -65,7 +65,7 @@ export async function matchSettlement(
 
     const [result] = await db
       .select({
-        total: sql<string>`COALESCE(SUM(${transactions.credit_amount}), '0')`,
+        total: sql<string>`COALESCE(SUM(${transactions.credit_amount}), 0::numeric)`,
       })
       .from(transactions)
       .where(

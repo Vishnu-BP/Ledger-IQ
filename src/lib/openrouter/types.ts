@@ -40,6 +40,13 @@ export interface ChatResponse {
 
 export interface LLMClient {
   chat(req: ChatRequest): Promise<ChatResponse>;
+  /**
+   * Streams the model's response one delta at a time. Used by the help-chat
+   * endpoint for token-by-token UX. No retry wrapping — streams can't be
+   * resumed mid-flight, so any error throws synchronously at the start or
+   * propagates from the generator iteration.
+   */
+  streamChat(req: ChatRequest): AsyncGenerator<string, void, unknown>;
 }
 
 /**

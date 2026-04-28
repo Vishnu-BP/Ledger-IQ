@@ -14,6 +14,7 @@
 
 import { redirect } from "next/navigation";
 
+import { ChatWidget } from "@/components/chat";
 import { Header } from "@/components/shell/Header";
 import { Sidebar } from "@/components/shell/Sidebar";
 import { getCurrentBusiness } from "@/lib/auth/getCurrentBusiness";
@@ -38,6 +39,7 @@ export default async function AppLayout({
         />
         <main className="flex-1 overflow-auto bg-background p-8">{children}</main>
       </div>
+      <ChatWidget />
     </div>
   );
 }

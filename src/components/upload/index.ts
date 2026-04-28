@@ -7,3 +7,5 @@ export {
   UploadTypeSelector,
   type UploadType,
 } from "@/components/upload/UploadTypeSelector";
+export { UploadStatusCard } from "@/components/upload/UploadStatusCard";
+export { UploadHistoryList } from "@/components/upload/UploadHistoryList";

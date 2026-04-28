@@ -19,13 +19,16 @@ import { Moon, Sun } from "lucide-react";
 
 export function ThemeToggle() {
   const [mounted, setMounted] = useState(false);
-  const { theme, setTheme } = useTheme();
+  // Use `resolvedTheme` not `theme` — when defaultTheme="system" the bare
+  // `theme` value is the literal string "system" (not "dark" or "light"),
+  // so the toggle compared against the wrong value and went the wrong way
+  // on first click. resolvedTheme always returns the actual rendered theme.
+  const { resolvedTheme, setTheme } = useTheme();
 
-  // Avoid hydration mismatch — don't render icon until client-side theme is known
   useEffect(() => setMounted(true), []);
   if (!mounted) return <div className="h-9 w-9" />;
 
-  const isDark = theme === "dark";
+  const isDark = resolvedTheme === "dark";
 
   return (
     <button

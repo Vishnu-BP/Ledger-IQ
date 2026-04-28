@@ -1,34 +1,33 @@
 "use client";
 
 /**
- * @file page.tsx — Upload screen: type selector + dropzone + progress + AI status.
+ * @file page.tsx — /upload — file upload + live status + history list.
  * @module app/(app)/upload
  *
- * Composes the three upload components, the useUpload mutation, and the
- * useStatementStatus polling hook. Three layers of feedback:
+ * Three sections:
+ *   1. Upload card — type selector + dropzone (only shown when no file in flight)
+ *   2. Status card — live step pills + progress + completion CTA (UploadStatusCard)
+ *   3. History list — past uploads with status badges (UploadHistoryList)
  *
- *   1. Upload progress (fake-animated bar during isPending; instant on settle).
- *   2. Parse-success toast — fires once when the route returns 200.
- *   3. Categorization status toasts — driven by polling
- *      `/api/statements/:id` every 2s while the statement is in flight.
- *      Fires once per terminal transition: complete → success toast (with
- *      "View transactions" action), error → error toast.
+ * Uses the unified `useUploadStatus(type, id)` hook that polls either
+ * /api/statements/:id (bank) or /api/settlements/:id (marketplace).
+ * Fires terminal toasts ONCE per status transition with a "View" action.
  *
- * @dependencies @tanstack/react-query (via useUpload + useStatementStatus), sonner
- * @related components/upload/*, lib/hooks/{useUpload,useStatementStatus}.ts
+ * @related components/upload/*, lib/hooks/{useUpload,useUploadStatus,useUploadHistory}
  */
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import {
   FileDropzone,
-  UploadProgress,
+  UploadHistoryList,
+  UploadStatusCard,
   UploadTypeSelector,
-  type UploadState,
   type UploadType,
 } from "@/components/upload";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -36,77 +35,77 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useStatementStatus, useUpload } from "@/lib/hooks";
-
-const FAKE_PROGRESS_TARGET = 90;
-const FAKE_PROGRESS_INTERVAL_MS = 100;
+import { useUpload, useUploadStatus } from "@/lib/hooks";
+import { formatINR } from "@/lib/utils";
 
 export default function UploadPage() {
   const upload = useUpload();
+  const queryClient = useQueryClient();
   const [type, setType] = useState<UploadType>("bank_statement");
   const [file, setFile] = useState<File | null>(null);
-  const [progress, setProgress] = useState(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Drive the fake progress bar while the mutation is in flight.
-  useEffect(() => {
-    if (upload.isPending) {
-      setProgress(0);
-      intervalRef.current = setInterval(() => {
-        setProgress((p) =>
-          p < FAKE_PROGRESS_TARGET ? p + 6 : FAKE_PROGRESS_TARGET,
-        );
-      }, FAKE_PROGRESS_INTERVAL_MS);
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-      if (upload.isSuccess || upload.isError) setProgress(100);
-    }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [upload.isPending, upload.isSuccess, upload.isError]);
-
-  // Surface upload-mutation terminal state via toast once.
+  // ─── Toasts on upload mutation result ──────────────────
   useEffect(() => {
     if (upload.isSuccess && upload.data) {
       toast.success("Upload received", {
-        description: `${upload.data.filename} parsed. AI categorising in background…`,
+        description:
+          upload.data.type === "bank_statement"
+            ? `${upload.data.filename} parsed. AI categorising in background…`
+            : `${upload.data.filename} stored. Reconciling against bank credits…`,
       });
+      // Refresh history so the new upload shows up immediately.
+      queryClient.invalidateQueries({ queryKey: ["upload-history"] });
     }
     if (upload.isError && upload.error) {
-      toast.error("Upload failed", {
-        description: upload.error.message,
-      });
+      toast.error("Upload failed", { description: upload.error.message });
     }
-  }, [upload.isSuccess, upload.isError, upload.data, upload.error]);
+  }, [upload.isSuccess, upload.isError, upload.data, upload.error, queryClient]);
 
-  // Poll the statement once we have an ID. Toasts fire on terminal transitions.
-  const statementId = upload.data?.id;
-  const status = useStatementStatus(statementId);
+  // ─── Poll status (type-aware) ──────────────────────────
+  const status = useUploadStatus(upload.data?.type, upload.data?.id);
+
+  // Refresh history when status flips to terminal so list stays current.
+  useEffect(() => {
+    if (status.data?.status === "complete" || status.data?.status === "reconciled") {
+      queryClient.invalidateQueries({ queryKey: ["upload-history"] });
+    }
+  }, [status.data?.status, queryClient]);
+
+  // ─── Fire terminal toast once per status transition ────
   const lastStatusRef = useRef<string | null>(null);
-
   useEffect(() => {
     const data = status.data;
     if (!data) return;
     if (lastStatusRef.current === data.status) return;
     lastStatusRef.current = data.status;
 
-    if (data.status === "complete") {
+    if (data.type === "bank_statement" && data.status === "complete") {
       toast.success("Categorisation complete", {
-        description: `${data.categorized_count} of ${data.total_transactions ?? data.categorized_count} transactions categorised.`,
-        action: {
-          label: "View",
-          onClick: () => {
-            window.location.href = "/transactions";
-          },
-        },
+        description: `${data.categorized_count ?? 0} of ${data.total_transactions ?? 0} transactions categorised.`,
+        action: { label: "View", onClick: () => (window.location.href = "/transactions") },
         duration: 8000,
       });
+    } else if (data.type !== "bank_statement" && data.status === "reconciled") {
+      const discrepancy = Number(data.total_discrepancy ?? 0);
+      const recCount = data.reconciliation_count ?? 0;
+      if (discrepancy > 10 && recCount > 0) {
+        toast.success(
+          `${data.marketplace === "flipkart" ? "Flipkart" : "Amazon"} owes you ${formatINR(discrepancy.toFixed(2))}`,
+          {
+            description: `${recCount} discrepancies detected across ${data.lines_count ?? 0} settlement lines.`,
+            action: { label: "View", onClick: () => (window.location.href = "/reconciliation") },
+            duration: 10000,
+          },
+        );
+      } else {
+        toast.success("Reconciliation complete", {
+          description: `${data.lines_count ?? 0} settlement lines reconciled — no discrepancies.`,
+          action: { label: "View", onClick: () => (window.location.href = "/reconciliation") },
+          duration: 8000,
+        });
+      }
     } else if (data.status === "error") {
-      toast.error("Categorisation failed", {
+      toast.error("Processing failed", {
         description: data.parse_error ?? "Unknown error — see server logs.",
         duration: 10000,
       });
@@ -122,104 +121,60 @@ export default function UploadPage() {
 
   function reset() {
     setFile(null);
-    setProgress(0);
     lastStatusRef.current = null;
     upload.reset();
   }
 
-  const state: UploadState | null = upload.isPending
-    ? "uploading"
-    : upload.isSuccess
-      ? "success"
-      : upload.isError
-        ? "error"
-        : null;
-
-  const message = upload.isPending
-    ? "Uploading…"
-    : upload.isSuccess
-      ? statusMessage(status.data?.status, status.data?.categorized_count, status.data?.total_transactions ?? upload.data?.total_transactions)
-      : upload.isError
-        ? upload.error?.message
-        : undefined;
+  const showStatusCard = !!file && (upload.isPending || upload.isSuccess || upload.isError);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-3xl">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Upload</h1>
         <p className="text-sm text-muted-foreground">
-          Drop bank statements (CSV) and marketplace settlement reports here.
+          Drop bank statements or marketplace settlement reports. We parse,
+          categorise, and reconcile in the background — you can leave this page.
         </p>
       </div>
 
-      <Card className="max-w-2xl">
-        <CardHeader>
-          <CardTitle>New upload</CardTitle>
-          <CardDescription>
-            Pick a file type, then drop or browse a CSV. We&apos;ll parse, store,
-            and AI-categorise it automatically.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <UploadTypeSelector
-            value={type}
-            onChange={setType}
-            disabled={upload.isPending}
+      {/* ── New upload ──────────────────────────────────── */}
+      {!showStatusCard ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>New upload</CardTitle>
+            <CardDescription>
+              Pick a file type, then drop or browse a CSV.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <UploadTypeSelector value={type} onChange={setType} />
+            <FileDropzone onFile={handleFile} />
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          <UploadStatusCard
+            type={upload.data?.type ?? type}
+            filename={file?.name ?? upload.data?.filename ?? ""}
+            fileSize={file?.size}
+            uploading={upload.isPending}
+            status={status.data?.status}
+            payload={status.data}
+            errorMessage={upload.isError ? upload.error?.message : undefined}
           />
+          <Button variant="outline" size="sm" onClick={reset}>
+            Upload another file
+          </Button>
+        </>
+      )}
 
-          <FileDropzone onFile={handleFile} disabled={upload.isPending} />
-
-          {file && state && (
-            <UploadProgress
-              filename={file.name}
-              state={state}
-              progress={progress}
-              message={message}
-            />
-          )}
-
-          {upload.isSuccess && status.data?.status === "complete" && (
-            <Link
-              href="/transactions"
-              className="block text-sm font-medium text-primary underline-offset-4 hover:underline"
-            >
-              View categorised transactions →
-            </Link>
-          )}
-
-          {(upload.isSuccess || upload.isError) && (
-            <button
-              type="button"
-              onClick={reset}
-              className="text-xs font-medium text-muted-foreground underline-offset-4 hover:underline"
-            >
-              Upload another file
-            </button>
-          )}
-        </CardContent>
-      </Card>
+      {/* ── Recent uploads list ─────────────────────────── */}
+      <div>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Recent uploads
+        </h2>
+        <UploadHistoryList />
+      </div>
     </div>
   );
-}
-
-function statusMessage(
-  status: string | undefined,
-  categorized: number | undefined,
-  total: number | null | undefined,
-): string {
-  switch (status) {
-    case "uploaded":
-    case "parsing":
-      return "Parsing on the server…";
-    case "parsed":
-      return "Parsed. Queued for AI categorisation…";
-    case "categorizing":
-      return `AI categorising ${categorized ?? 0}${total ? ` of ${total}` : ""}…`;
-    case "complete":
-      return `Categorised ${categorized ?? 0}${total ? ` of ${total}` : ""} transactions.`;
-    case "error":
-      return "Categorisation hit an error — see toast.";
-    default:
-      return "Parsing on the server…";
-  }
 }

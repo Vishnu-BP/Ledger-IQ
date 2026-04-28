@@ -24,3 +24,9 @@ export const EDGE_CASE_MODEL = "anthropic/claude-sonnet-4.6" as const;
  * after retry-with-backoff exhausts. Same JSON-output contract as Llama.
  */
 export const FALLBACK_MODEL = "google/gemini-2.5-flash" as const;
+
+/**
+ * Help-chat assistant — Claude Haiku 4.5. Chat-tuned, low first-token latency,
+ * cheap (~$1/$5 per million tokens). Used by the in-app help chatbot only.
+ */
+export const CHAT_MODEL = "anthropic/claude-haiku-4.5" as const;

@@ -82,6 +82,30 @@ export class OpenRouterClient implements LLMClient {
       throw normaliseError(err);
     }
   }
+
+  async *streamChat(req: ChatRequest): AsyncGenerator<string, void, unknown> {
+    let stream;
+    try {
+      stream = await this.sdk.chat.completions.create({
+        model: req.model,
+        messages: req.messages,
+        temperature: req.temperature ?? 0.4,
+        max_tokens: req.maxTokens,
+        stream: true,
+      });
+    } catch (err) {
+      throw normaliseError(err);
+    }
+
+    try {
+      for await (const chunk of stream) {
+        const delta = chunk.choices[0]?.delta?.content;
+        if (delta) yield delta;
+      }
+    } catch (err) {
+      throw normaliseError(err);
+    }
+  }
 }
 
 function normaliseError(err: unknown): LLMError {
