@@ -30,10 +30,16 @@ export interface UpdateTransactionInput {
   category?: string | null;
   channel?: string | null;
   gst_head?: string | null;
+  /** When true, also persist a category_overrides row + cascade to siblings. */
+  apply_to_similar?: boolean;
 }
 
-interface UpdateTransactionResponse {
+export interface UpdateTransactionResponse {
   transaction: Transaction;
+  /** Number of *other* rows updated by the cascade. Only present when */
+  /** the request included apply_to_similar=true. */
+  similar_count?: number;
+  override_id?: string;
 }
 
 async function patchTransaction(

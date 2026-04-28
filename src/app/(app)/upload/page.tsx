@@ -1,22 +1,24 @@
 "use client";
 
 /**
- * @file page.tsx — Upload screen: type selector + dropzone + progress.
+ * @file page.tsx — Upload screen: type selector + dropzone + progress + AI status.
  * @module app/(app)/upload
  *
- * Composes the three upload components and the useUpload mutation. Owns the
- * fake-animated progress bar (fetch doesn't expose upload progress); the bar
- * climbs to 90% during isPending and snaps to 100 on settle. Toasts final
- * state via sonner.
+ * Composes the three upload components, the useUpload mutation, and the
+ * useStatementStatus polling hook. Three layers of feedback:
  *
- * After a successful upload, stage 2.2 will return the new statement id and
- * we'll route to /transactions to view parsed rows. For 2.1 we just show
- * the success state so the round-trip is visible.
+ *   1. Upload progress (fake-animated bar during isPending; instant on settle).
+ *   2. Parse-success toast — fires once when the route returns 200.
+ *   3. Categorization status toasts — driven by polling
+ *      `/api/statements/:id` every 2s while the statement is in flight.
+ *      Fires once per terminal transition: complete → success toast (with
+ *      "View transactions" action), error → error toast.
  *
- * @dependencies @tanstack/react-query (via useUpload), sonner
- * @related components/upload/*, lib/hooks/useUpload.ts
+ * @dependencies @tanstack/react-query (via useUpload + useStatementStatus), sonner
+ * @related components/upload/*, lib/hooks/{useUpload,useStatementStatus}.ts
  */
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -34,7 +36,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useUpload } from "@/lib/hooks";
+import { useStatementStatus, useUpload } from "@/lib/hooks";
 
 const FAKE_PROGRESS_TARGET = 90;
 const FAKE_PROGRESS_INTERVAL_MS = 100;
@@ -67,11 +69,11 @@ export default function UploadPage() {
     };
   }, [upload.isPending, upload.isSuccess, upload.isError]);
 
-  // Surface terminal state via toast once.
+  // Surface upload-mutation terminal state via toast once.
   useEffect(() => {
     if (upload.isSuccess && upload.data) {
       toast.success("Upload received", {
-        description: `${upload.data.filename} is parsing.`,
+        description: `${upload.data.filename} parsed. AI categorising in background…`,
       });
     }
     if (upload.isError && upload.error) {
@@ -81,15 +83,47 @@ export default function UploadPage() {
     }
   }, [upload.isSuccess, upload.isError, upload.data, upload.error]);
 
+  // Poll the statement once we have an ID. Toasts fire on terminal transitions.
+  const statementId = upload.data?.id;
+  const status = useStatementStatus(statementId);
+  const lastStatusRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const data = status.data;
+    if (!data) return;
+    if (lastStatusRef.current === data.status) return;
+    lastStatusRef.current = data.status;
+
+    if (data.status === "complete") {
+      toast.success("Categorisation complete", {
+        description: `${data.categorized_count} of ${data.total_transactions ?? data.categorized_count} transactions categorised.`,
+        action: {
+          label: "View",
+          onClick: () => {
+            window.location.href = "/transactions";
+          },
+        },
+        duration: 8000,
+      });
+    } else if (data.status === "error") {
+      toast.error("Categorisation failed", {
+        description: data.parse_error ?? "Unknown error — see server logs.",
+        duration: 10000,
+      });
+    }
+  }, [status.data]);
+
   function handleFile(f: File) {
     setFile(f);
     upload.reset();
+    lastStatusRef.current = null;
     upload.mutate({ file: f, type });
   }
 
   function reset() {
     setFile(null);
     setProgress(0);
+    lastStatusRef.current = null;
     upload.reset();
   }
 
@@ -104,7 +138,7 @@ export default function UploadPage() {
   const message = upload.isPending
     ? "Uploading…"
     : upload.isSuccess
-      ? "Parsing on the server. Categorisation runs in Layer 3."
+      ? statusMessage(status.data?.status, status.data?.categorized_count, status.data?.total_transactions ?? upload.data?.total_transactions)
       : upload.isError
         ? upload.error?.message
         : undefined;
@@ -123,7 +157,7 @@ export default function UploadPage() {
           <CardTitle>New upload</CardTitle>
           <CardDescription>
             Pick a file type, then drop or browse a CSV. We&apos;ll parse, store,
-            and (after Layer 3) categorise it automatically.
+            and AI-categorise it automatically.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -144,6 +178,15 @@ export default function UploadPage() {
             />
           )}
 
+          {upload.isSuccess && status.data?.status === "complete" && (
+            <Link
+              href="/transactions"
+              className="block text-sm font-medium text-primary underline-offset-4 hover:underline"
+            >
+              View categorised transactions →
+            </Link>
+          )}
+
           {(upload.isSuccess || upload.isError) && (
             <button
               type="button"
@@ -157,4 +200,26 @@ export default function UploadPage() {
       </Card>
     </div>
   );
+}
+
+function statusMessage(
+  status: string | undefined,
+  categorized: number | undefined,
+  total: number | null | undefined,
+): string {
+  switch (status) {
+    case "uploaded":
+    case "parsing":
+      return "Parsing on the server…";
+    case "parsed":
+      return "Parsed. Queued for AI categorisation…";
+    case "categorizing":
+      return `AI categorising ${categorized ?? 0}${total ? ` of ${total}` : ""}…`;
+    case "complete":
+      return `Categorised ${categorized ?? 0}${total ? ` of ${total}` : ""} transactions.`;
+    case "error":
+      return "Categorisation hit an error — see toast.";
+    default:
+      return "Parsing on the server…";
+  }
 }

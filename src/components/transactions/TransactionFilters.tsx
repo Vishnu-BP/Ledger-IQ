@@ -20,6 +20,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 export function TransactionFilters() {
   const router = useRouter();
@@ -31,6 +32,7 @@ export function TransactionFilters() {
     searchParams.get("start_date") ?? "",
   );
   const [endDate, setEndDate] = useState(searchParams.get("end_date") ?? "");
+  const needsReview = searchParams.get("needs_review") === "1";
 
   // Keep local state in sync if URL changes externally (e.g. browser back).
   useEffect(() => {
@@ -39,11 +41,7 @@ export function TransactionFilters() {
     setEndDate(searchParams.get("end_date") ?? "");
   }, [searchParams]);
 
-  function commit(values: {
-    search?: string;
-    start_date?: string;
-    end_date?: string;
-  }) {
+  function commit(values: Record<string, string | undefined>) {
     const next = new URLSearchParams(searchParams.toString());
     for (const [key, val] of Object.entries(values)) {
       if (val) next.set(key, val);
@@ -57,6 +55,10 @@ export function TransactionFilters() {
     commit({ search, start_date: startDate, end_date: endDate });
   }
 
+  function toggleNeedsReview() {
+    commit({ needs_review: needsReview ? undefined : "1" });
+  }
+
   function clear() {
     setSearch("");
     setStartDate("");
@@ -64,7 +66,7 @@ export function TransactionFilters() {
     router.replace(pathname);
   }
 
-  const hasFilters = !!(search || startDate || endDate);
+  const hasFilters = !!(search || startDate || endDate || needsReview);
 
   return (
     <form
@@ -120,6 +122,28 @@ export function TransactionFilters() {
             <X className="h-4 w-4" />
           </Button>
         )}
+      </div>
+
+      <div className="sm:col-span-4">
+        <button
+          type="button"
+          onClick={toggleNeedsReview}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+            needsReview
+              ? "border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100"
+              : "border-border bg-background text-muted-foreground hover:bg-muted",
+          )}
+        >
+          <span
+            className={cn(
+              "h-1.5 w-1.5 rounded-full",
+              needsReview ? "bg-amber-500" : "bg-muted-foreground/40",
+            )}
+          />
+          Needs review
+          {needsReview && <X className="h-3 w-3" />}
+        </button>
       </div>
     </form>
   );

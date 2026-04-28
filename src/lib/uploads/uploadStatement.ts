@@ -26,6 +26,7 @@ import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db/client";
 import { statements, transactions } from "@/db/schema";
+import { categorizeTransactions } from "@/lib/categorization";
 import { createLogger } from "@/lib/logger";
 import { ParseError, parseBankStatement } from "@/lib/parsers";
 import { uploadStatementFile } from "@/lib/storage";
@@ -147,6 +148,19 @@ export async function uploadStatement(
       bank: parsed.bank,
       txnCount: parsed.transactions.length,
       period: `${parsed.period_start} → ${parsed.period_end}`,
+    });
+
+    // Fire-and-forget the AI categorization pipeline. The route handler has
+    // already returned to the client by this point; the promise runs in the
+    // server's background. Status transitions parsed → categorizing → complete
+    // are visible to the UI via GET /api/statements/:id polling. Vercel
+    // deploy (Layer 5.8) may need to wrap this in `waitUntil` to survive
+    // function teardown — local dev keeps it alive until Node exits.
+    categorizeTransactions(input.businessId, created.id).catch((err) => {
+      log.error("Background categorization failed", {
+        id: created.id,
+        err: String(err),
+      });
     });
 
     return {

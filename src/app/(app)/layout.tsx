@@ -3,7 +3,7 @@
  * @module app/(app)
  *
  * RSC gate: requires both authenticated user AND completed onboarding. The
- * middleware already enforces auth across /app/*, so this layer is the
+ * middleware already enforces auth across the protected root paths, so this layer is the
  * onboarded-state check — users who skipped or abandoned onboarding get sent
  * back to /onboarding rather than seeing an empty shell.
  *

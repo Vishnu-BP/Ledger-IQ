@@ -1,5 +1,3 @@
-import "server-only";
-
 /**
  * @file listTransactions.ts — Fetch a paginated, filtered slice of transactions.
  * @module lib/transactions
@@ -8,14 +6,20 @@ import "server-only";
  * business_id (auth check happens in the route handler). Filters compose
  * dynamically via Drizzle's `and(...conditions)`.
  *
+ * Server-only by transitive guard: imports @/db/client which imports @/lib/env,
+ * and DATABASE_URL is non-NEXT_PUBLIC so a client bundle import would throw at
+ * env-validation time. We omit the explicit `import "server-only"` so smoke
+ * scripts run by tsx can exercise this module.
+ *
  * @dependencies @/db/client, drizzle-orm
  * @related app/api/transactions/route.ts
  */
 
-import { and, desc, eq, gte, ilike, lte, type SQL } from "drizzle-orm";
+import { and, desc, eq, gte, ilike, lt, lte, type SQL } from "drizzle-orm";
 
 import { db } from "@/db/client";
 import { transactions } from "@/db/schema";
+import { EDGE_CASE_THRESHOLD } from "@/lib/categorization";
 
 export interface ListTransactionsFilters {
   businessId: string;
@@ -24,6 +28,8 @@ export interface ListTransactionsFilters {
   search?: string; // matched against description ILIKE
   category?: string;
   channel?: string;
+  /** When true, only return rows with confidence_score < EDGE_CASE_THRESHOLD. */
+  needsReview?: boolean;
   limit?: number;
   offset?: number;
 }
@@ -54,6 +60,11 @@ export async function listTransactions(
   }
   if (filters.channel) {
     where.push(eq(transactions.channel, filters.channel));
+  }
+  if (filters.needsReview) {
+    where.push(
+      lt(transactions.confidence_score, EDGE_CASE_THRESHOLD.toString()),
+    );
   }
 
   const limit = Math.min(filters.limit ?? DEFAULT_LIMIT, MAX_LIMIT);

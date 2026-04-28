@@ -2,15 +2,14 @@
  * @file page.tsx — /dashboard — interim Layer-2 summary view.
  * @module app/(app)/dashboard
  *
- * RSC: pulls 5 lightweight aggregates in parallel (statement count, transaction
- * count, 30-day inflow + outflow, 5 most-recent rows) and renders a clean
- * landing page. Layer 4.1 will replace this with the full KPI/chart/anomaly
- * dashboard once AI categorisation lands. Until then this answers the basic
- * "did my upload work?" question without leaning on Layer 3 data.
+ * Shell renders immediately; each data section streams in independently via
+ * Suspense. Layer 4.1 will replace this with the full KPI/chart/anomaly
+ * dashboard once AI categorisation lands.
  *
  * @related lib/auth/getCurrentBusiness.ts, db/schema.ts, components/shell/SignOutButton.tsx
  */
 
+import { Suspense } from "react";
 import { and, desc, eq, gte, sql } from "drizzle-orm";
 import {
   ArrowDownRight,
@@ -37,58 +36,144 @@ import { statements, transactions } from "@/db/schema";
 import { getCurrentBusiness } from "@/lib/auth";
 import { cn, formatDate, formatINR } from "@/lib/utils";
 
-export default async function DashboardPage() {
-  const result = await getCurrentBusiness();
-  // Defensive — layout already gates these. Belt + suspenders.
-  if (!result) redirect("/auth/login");
-  if (!result.business) redirect("/onboarding");
+// ─── Skeletons ─────────────────────────────────────────────
 
-  const businessId = result.business.id;
+function StatCardSkeleton() {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <div className="h-3 w-20 animate-pulse rounded bg-muted" />
+        <div className="h-4 w-4 animate-pulse rounded bg-muted" />
+      </CardHeader>
+      <CardContent>
+        <div className="h-8 w-24 animate-pulse rounded bg-muted" />
+      </CardContent>
+    </Card>
+  );
+}
+
+function RecentTransactionsSkeleton() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Recent transactions</CardTitle>
+        <CardDescription>Last 5 rows added across all uploaded statements.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ul className="divide-y">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <li key={i} className="flex items-center justify-between gap-4 py-2.5">
+              <div className="h-3 w-20 animate-pulse rounded bg-muted" />
+              <div className="h-3 flex-1 animate-pulse rounded bg-muted" />
+              <div className="h-3 w-16 animate-pulse rounded bg-muted" />
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Async data components ──────────────────────────────────
+
+async function StatCards({ businessId }: { businessId: string }) {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const cutoff = thirtyDaysAgo.toISOString().slice(0, 10);
 
-  const [
-    statementCount,
-    transactionCount,
-    inflowRow,
-    outflowRow,
-    recentRows,
-  ] = await Promise.all([
-    db.$count(statements, eq(statements.business_id, businessId)),
-    db.$count(transactions, eq(transactions.business_id, businessId)),
-    db
-      .select({
-        total: sql<string>`COALESCE(SUM(${transactions.credit_amount}), '0')`,
-      })
-      .from(transactions)
-      .where(
-        and(
-          eq(transactions.business_id, businessId),
-          gte(transactions.transaction_date, cutoff),
-        ),
-      ),
-    db
-      .select({
-        total: sql<string>`COALESCE(SUM(${transactions.debit_amount}), '0')`,
-      })
-      .from(transactions)
-      .where(
-        and(
-          eq(transactions.business_id, businessId),
-          gte(transactions.transaction_date, cutoff),
-        ),
-      ),
-    db
-      .select()
-      .from(transactions)
-      .where(eq(transactions.business_id, businessId))
-      .orderBy(desc(transactions.created_at))
-      .limit(5),
-  ]);
+  const [statementCount, transactionCount, inflowRow, outflowRow] =
+    await Promise.all([
+      db.$count(statements, eq(statements.business_id, businessId)),
+      db.$count(transactions, eq(transactions.business_id, businessId)),
+      db
+        .select({ total: sql<string>`COALESCE(SUM(${transactions.credit_amount}), '0')` })
+        .from(transactions)
+        .where(and(eq(transactions.business_id, businessId), gte(transactions.transaction_date, cutoff))),
+      db
+        .select({ total: sql<string>`COALESCE(SUM(${transactions.debit_amount}), '0')` })
+        .from(transactions)
+        .where(and(eq(transactions.business_id, businessId), gte(transactions.transaction_date, cutoff))),
+    ]);
 
-  const inflow = inflowRow[0]?.total ?? "0";
-  const outflow = outflowRow[0]?.total ?? "0";
+  if (statementCount === 0) {
+    return (
+      <EmptyState
+        icon={Upload}
+        title="No data yet"
+        description="Upload your first bank statement to see counts, totals, and recent transactions here."
+      >
+        <Button asChild>
+          <Link href="/upload">Upload your first statement</Link>
+        </Button>
+      </EmptyState>
+    );
+  }
+
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <StatCard label="Statements" value={statementCount.toString()} icon={<FileText className="h-4 w-4" />} />
+      <StatCard label="Transactions" value={transactionCount.toString()} icon={<ReceiptText className="h-4 w-4" />} />
+      <StatCard
+        label="30-day inflow"
+        value={formatINR(inflowRow[0]?.total ?? "0")}
+        icon={<ArrowUpRight className="h-4 w-4 text-emerald-600" />}
+        valueClassName="text-emerald-700"
+      />
+      <StatCard
+        label="30-day outflow"
+        value={formatINR(outflowRow[0]?.total ?? "0")}
+        icon={<ArrowDownRight className="h-4 w-4 text-destructive" />}
+        valueClassName="text-destructive"
+      />
+    </div>
+  );
+}
+
+async function RecentTransactions({ businessId }: { businessId: string }) {
+  const recentRows = await db
+    .select()
+    .from(transactions)
+    .where(eq(transactions.business_id, businessId))
+    .orderBy(desc(transactions.created_at))
+    .limit(5);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Recent transactions</CardTitle>
+        <CardDescription>Last 5 rows added across all uploaded statements.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {recentRows.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Statements uploaded but no transactions parsed. Check the Transactions page.
+          </p>
+        ) : (
+          <ul className="divide-y">
+            {recentRows.map((t) => (
+              <li key={t.id} className="flex items-center justify-between gap-4 py-2.5 text-sm">
+                <span className="w-24 shrink-0 text-muted-foreground">{formatDate(t.transaction_date)}</span>
+                <span className="flex-1 truncate" title={t.description}>{t.description}</span>
+                <span className={cn("shrink-0 font-medium", t.credit_amount && "text-emerald-600", t.debit_amount && "text-destructive")}>
+                  {t.credit_amount ? `+${formatINR(t.credit_amount)}` : t.debit_amount ? `−${formatINR(t.debit_amount)}` : "—"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Page ───────────────────────────────────────────────────
+
+export default async function DashboardPage() {
+  const result = await getCurrentBusiness();
+  if (!result) redirect("/auth/login");
+  if (!result.business) redirect("/onboarding");
+
+  const businessId = result.business.id;
 
   return (
     <div className="space-y-6">
@@ -104,110 +189,32 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {statementCount === 0 ? (
-        <EmptyState
-          icon={Upload}
-          title="No data yet"
-          description="Upload your first bank statement to see counts, totals, and recent transactions here."
-        >
-          <Button asChild>
-            <Link href="/upload">Upload your first statement</Link>
-          </Button>
-        </EmptyState>
-      ) : (
-        <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard
-              label="Statements"
-              value={statementCount.toString()}
-              icon={<FileText className="h-4 w-4" />}
-            />
-            <StatCard
-              label="Transactions"
-              value={transactionCount.toString()}
-              icon={<ReceiptText className="h-4 w-4" />}
-            />
-            <StatCard
-              label="30-day inflow"
-              value={formatINR(inflow)}
-              icon={<ArrowUpRight className="h-4 w-4 text-emerald-600" />}
-              valueClassName="text-emerald-700"
-            />
-            <StatCard
-              label="30-day outflow"
-              value={formatINR(outflow)}
-              icon={<ArrowDownRight className="h-4 w-4 text-destructive" />}
-              valueClassName="text-destructive"
-            />
-          </div>
+      <Suspense fallback={
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton />
+        </div>
+      }>
+        <StatCards businessId={businessId} />
+      </Suspense>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Recent transactions</CardTitle>
-              <CardDescription>
-                Last 5 rows added across all uploaded statements.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {recentRows.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Statements uploaded but no transactions parsed. Check the
-                  Transactions page.
-                </p>
-              ) : (
-                <ul className="divide-y">
-                  {recentRows.map((t) => (
-                    <li
-                      key={t.id}
-                      className="flex items-center justify-between gap-4 py-2.5 text-sm"
-                    >
-                      <span className="w-24 shrink-0 text-muted-foreground">
-                        {formatDate(t.transaction_date)}
-                      </span>
-                      <span
-                        className="flex-1 truncate"
-                        title={t.description}
-                      >
-                        {t.description}
-                      </span>
-                      <span
-                        className={cn(
-                          "shrink-0 font-medium",
-                          t.credit_amount && "text-emerald-600",
-                          t.debit_amount && "text-destructive",
-                        )}
-                      >
-                        {t.credit_amount
-                          ? `+${formatINR(t.credit_amount)}`
-                          : t.debit_amount
-                            ? `−${formatINR(t.debit_amount)}`
-                            : "—"}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
+      <Suspense fallback={<RecentTransactionsSkeleton />}>
+        <RecentTransactions businessId={businessId} />
+      </Suspense>
 
-          <div className="flex flex-wrap gap-2">
-            <Button asChild>
-              <Link href="/upload">Upload another statement</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/transactions">View all transactions</Link>
-            </Button>
-          </div>
-        </>
-      )}
+      <div className="flex flex-wrap gap-2">
+        <Button asChild>
+          <Link href="/upload">Upload another statement</Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link href="/transactions">View all transactions</Link>
+        </Button>
+      </div>
 
       <Card className="bg-muted/30">
         <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
           <p className="text-xs text-muted-foreground">
             Signed in as{" "}
-            <span className="font-medium text-foreground">
-              {result.user.email}
-            </span>
+            <span className="font-medium text-foreground">{result.user.email}</span>
           </p>
           <div className="w-40">
             <SignOutButton />
@@ -217,6 +224,8 @@ export default async function DashboardPage() {
     </div>
   );
 }
+
+// ─── Shared UI ──────────────────────────────────────────────
 
 interface StatCardProps {
   label: string;

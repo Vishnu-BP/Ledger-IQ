@@ -14,3 +14,7 @@ export {
   type UpdateTransactionInput,
 } from "@/lib/hooks/useUpdateTransaction";
 export { useDeleteTransaction } from "@/lib/hooks/useDeleteTransaction";
+export {
+  useStatementStatus,
+  type StatementStatusPayload,
+} from "@/lib/hooks/useStatementStatus";

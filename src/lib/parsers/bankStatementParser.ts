@@ -19,6 +19,11 @@ import Papa from "papaparse";
 import { isHdfcHeader, parseHdfcRow } from "@/lib/parsers/formats/hdfc";
 import { isIciciHeader, parseIciciRow } from "@/lib/parsers/formats/icici";
 import {
+  buildUniversalRowParser,
+  detectColumns,
+  detectDateFormat,
+} from "@/lib/parsers/formats/universal";
+import {
   type BankFormat,
   ParseError,
   type ParsedTransaction,
@@ -58,16 +63,36 @@ export function parseBankStatement(csvText: string): ParserResult {
   }
 
   const handler = FORMAT_HANDLERS.find((h) => h.isMatch(headers));
-  if (!handler) {
-    throw new ParseError(
-      "unknown_format",
-      `Unrecognized bank format. Expected HDFC or ICICI columns; got: ${headers.join(", ")}`,
-    );
+
+  let bankFormat: BankFormat;
+  let parseRow: (row: Record<string, string>) => ParsedTransaction | null;
+
+  if (handler) {
+    bankFormat = handler.format;
+    parseRow = handler.parseRow;
+  } else {
+    // Fall back to universal column inference for any other CSV format
+    const colMap = detectColumns(headers);
+    if (!colMap) {
+      throw new ParseError(
+        "unknown_format",
+        `Cannot map columns to date/description/amount. Got: ${headers.join(", ")}`,
+      );
+    }
+    const dateFormat = detectDateFormat(result.data, colMap.date);
+    if (!dateFormat) {
+      throw new ParseError(
+        "unknown_format",
+        "Cannot detect date format from the CSV — ensure dates are in a standard format (dd/MM/yyyy, yyyy-MM-dd, etc.)",
+      );
+    }
+    bankFormat = "universal";
+    parseRow = buildUniversalRowParser(colMap, dateFormat);
   }
 
   const transactions: ParsedTransaction[] = [];
   for (const row of result.data) {
-    const parsed = handler.parseRow(row);
+    const parsed = parseRow(row);
     if (parsed) transactions.push(parsed);
   }
 
@@ -81,7 +106,7 @@ export function parseBankStatement(csvText: string): ParserResult {
   );
 
   return {
-    bank: handler.format,
+    bank: bankFormat,
     transactions,
     period_start: sorted[0].transaction_date,
     period_end: sorted[sorted.length - 1].transaction_date,

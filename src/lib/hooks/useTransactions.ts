@@ -25,6 +25,8 @@ export interface TransactionFilters {
   search?: string;
   category?: string;
   channel?: string;
+  /** "1" enables the < 0.85 confidence filter. */
+  needs_review?: "1";
   limit?: number;
   offset?: number;
 }

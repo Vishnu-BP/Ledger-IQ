@@ -25,6 +25,10 @@ const filtersSchema = z.object({
   search: z.string().max(120).optional(),
   category: z.string().max(120).optional(),
   channel: z.string().max(40).optional(),
+  needs_review: z
+    .enum(["0", "1", "true", "false"])
+    .optional()
+    .transform((v) => v === "1" || v === "true"),
   limit: z.coerce.number().int().min(1).max(500).optional(),
   offset: z.coerce.number().int().min(0).optional(),
 });
@@ -72,6 +76,7 @@ export async function GET(request: NextRequest) {
       search: parsed.data.search,
       category: parsed.data.category,
       channel: parsed.data.channel,
+      needsReview: parsed.data.needs_review,
       limit: parsed.data.limit,
       offset: parsed.data.offset,
     });

@@ -1,15 +1,13 @@
-import "server-only";
-
 /**
  * @file updateTransaction.ts — Patch a transaction row (manual user override).
  * @module lib/transactions
  *
- * Allowed mutable fields in Layer 2 scope: category, channel, gst_head.
- * Setting any of these flips `user_overridden=true` so the (Layer 3) AI
- * categorizer doesn't re-clobber the user's choice on a re-run.
+ * Allowed mutable fields: category, channel, gst_head. Setting any of these
+ * flips `user_overridden=true` so the AI categorizer doesn't re-clobber the
+ * user's choice on a re-run. Ownership enforced via business_id in the WHERE.
  *
- * Ownership is enforced explicitly via business_id in the WHERE clause —
- * defense-in-depth even though the route handler also checks auth.
+ * Server-only by transitive guard (db/client → env.ts), per the same pattern
+ * documented in listTransactions.ts.
  *
  * @dependencies @/db/client, drizzle-orm
  * @related app/api/transactions/[id]/route.ts, lib/transactions/index.ts

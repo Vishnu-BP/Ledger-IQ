@@ -4,11 +4,11 @@
  * @file TransactionRow.tsx — Single row in the transactions table.
  * @module components/transactions
  *
- * Pulled out of TransactionTable to keep the table component focused on
- * filtering / loading state / orchestration. Each row owns its action
- * handlers and "Awaiting AI" placeholder rendering for NULL Layer-3 fields.
+ * Renders the row alongside its provenance pill (ConfidenceBadge — green
+ * Rule/User, percent for LLM rows, red for fallback) and a hover-only
+ * AiReasoningTooltip that surfaces the LLM's one-line justification.
  *
- * @related components/transactions/TransactionTable.tsx
+ * @related components/transactions/TransactionTable.tsx, ConfidenceBadge.tsx, AiReasoningTooltip.tsx
  */
 
 import { Pencil, Trash2 } from "lucide-react";
@@ -16,9 +16,12 @@ import { Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
-import { getChannelLabel } from "@/lib/transactions";
+import { getChannelLabel } from "@/lib/transactions/channels";
 import { cn, formatDate, formatINR } from "@/lib/utils";
 import type { Transaction } from "@/types/transaction";
+
+import { AiReasoningTooltip } from "./AiReasoningTooltip";
+import { ConfidenceBadge } from "./ConfidenceBadge";
 
 interface TransactionRowProps {
   transaction: Transaction;
@@ -49,7 +52,18 @@ export function TransactionRow({
         )}
       </TableCell>
       <TableCell className="text-sm">
-        {t.category ?? <AwaitingAi />}
+        {t.category ? (
+          <span className="inline-flex items-center gap-1.5">
+            <span>{t.category}</span>
+            <ConfidenceBadge
+              score={t.confidence_score}
+              modelUsed={t.model_used}
+            />
+            <AiReasoningTooltip reasoning={t.ai_reasoning} />
+          </span>
+        ) : (
+          <AwaitingAi />
+        )}
       </TableCell>
       <TableCell
         className={cn(

@@ -1,12 +1,10 @@
-import "server-only";
-
 /**
  * @file deleteTransaction.ts — Delete a single transaction row owned by the user.
  * @module lib/transactions
  *
  * Ownership scoped via business_id WHERE clause. Returns the deleted row's id
- * so the route can confirm the delete actually hit something (vs. a 404 from
- * a non-existent / wrong-owner id).
+ * so the route can confirm the delete actually hit something. Server-only by
+ * transitive guard (db/client → env.ts), per listTransactions.ts.
  *
  * @dependencies @/db/client, drizzle-orm
  * @related app/api/transactions/[id]/route.ts

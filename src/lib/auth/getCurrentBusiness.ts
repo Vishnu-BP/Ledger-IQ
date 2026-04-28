@@ -16,6 +16,7 @@
  * @related app/auth/callback/route.ts, app/(app)/layout.tsx (stage 1.6)
  */
 
+import { cache } from "react";
 import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { businesses } from "@/db/schema";
@@ -26,7 +27,7 @@ export interface CurrentBusiness {
   business: typeof businesses.$inferSelect | null;
 }
 
-export async function getCurrentBusiness(): Promise<CurrentBusiness | null> {
+export const getCurrentBusiness = cache(async (): Promise<CurrentBusiness | null> => {
   const supabase = createClient();
   const {
     data: { user },
@@ -44,4 +45,4 @@ export async function getCurrentBusiness(): Promise<CurrentBusiness | null> {
     user: { id: user.id, email: user.email },
     business: business ?? null,
   };
-}
+});

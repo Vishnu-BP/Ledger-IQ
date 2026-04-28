@@ -33,6 +33,10 @@ export interface UploadResult {
   type: UploadType;
   status: string;
   filename: string;
+  bank: string | null;
+  total_transactions: number;
+  period_start: string | null;
+  period_end: string | null;
   estimated_completion_seconds?: number;
 }
 

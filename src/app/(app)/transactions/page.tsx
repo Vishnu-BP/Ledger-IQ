@@ -31,8 +31,8 @@ export default async function TransactionsPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Transactions</h1>
         <p className="text-sm text-muted-foreground">
-          Every line item from your bank statements. AI categorisation arrives
-          in Layer 3 — for now you can review, filter, edit, and delete.
+          Every line item from your bank statements, AI-categorised. Toggle
+          &quot;Needs review&quot; to focus on rows where the model wasn&apos;t sure.
         </p>
       </div>
 
